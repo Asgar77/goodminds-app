@@ -29,6 +29,4 @@ async function uploadFile(file: File, path: string) {
   return await getDownloadURL(storageRef);
 }
 
-const userData = useUserData(auth.currentUser?.uid);
-
-export { app, auth, provider, db, analytics, storage }; 
+export { app, auth, provider, db, analytics, storage };
