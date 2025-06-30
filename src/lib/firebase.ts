@@ -4,7 +4,6 @@ import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
 import { getStorage } from "firebase/storage";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import GoogleAuth from '../components/GoogleAuth';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
