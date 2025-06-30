@@ -44,6 +44,9 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({ onAuthSuccess, onAuthError }) =
   const [authLoading, setAuthLoading] = useState(false);
   const { toast } = useToast();
 
+  // Listen to Firestore user data
+  const { userData, loading: userDataLoading } = useUserData(user?.uid);
+
   // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
