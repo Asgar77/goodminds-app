@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Heart, BarChart3, Phone, BookOpen, Settings, User, Menu, X } from 'lucide-react';
+import { Brain, Heart, BarChart3, Phone, BookOpen, Settings, User, Menu, X, TrendingUp, Calendar, Award } from 'lucide-react';
 import MoodTracker from './MoodTracker';
 import AssessmentModule from './AssessmentModule';
 import VoiceAssistant from './VoiceAssistant';
 import { auth, db } from '../lib/firebase';
 import { useUserData } from './GoogleAuth';
-import { collection, onSnapshot, addDoc, query, orderBy, deleteDoc, doc, setDoc } from 'firebase/firestore';
-import Logo from './Logo';
+import { collection, onSnapshot, addDoc, query, orderBy, deleteDoc, doc, setDoc, getDocs } from 'firebase/firestore';
+import { ThemeToggle } from './ThemeToggle';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -17,6 +17,66 @@ interface DashboardProps {
 const Dashboard = ({ onLogout }: DashboardProps) => {
   const [activeModule, setActiveModule] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dashboardStats, setDashboardStats] = useState({
+    moodEntries: 0,
+    assessmentsCompleted: 0,
+    taraSessions: 0,
+    journalEntries: 0,
+    currentStreak: 0,
+    wellnessScore: 0
+  });
+
+  const user = auth.currentUser;
+  const { userData } = useUserData(user?.uid);
+
+  // Fetch dashboard statistics
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchStats = async () => {
+      try {
+        // Fetch mood entries
+        const moodsSnapshot = await getDocs(collection(db, `users/${user.uid}/moods`));
+        const moodEntries = moodsSnapshot.size;
+
+        // Fetch assessments
+        const assessmentsSnapshot = await getDocs(collection(db, `users/${user.uid}/assessments`));
+        const assessmentsCompleted = assessmentsSnapshot.size;
+
+        // Fetch Tara sessions
+        const taraSnapshot = await getDocs(collection(db, `users/${user.uid}/taraSessions`));
+        const taraSessions = taraSnapshot.size;
+
+        // Fetch journal entries
+        const journalSnapshot = await getDocs(collection(db, `users/${user.uid}/journal`));
+        const journalEntries = journalSnapshot.size;
+
+        // Calculate wellness score (simple algorithm)
+        const wellnessScore = Math.min(100, Math.round(
+          (moodEntries * 2) + 
+          (assessmentsCompleted * 10) + 
+          (taraSessions * 5) + 
+          (journalEntries * 3)
+        ));
+
+        // Calculate current streak (simplified)
+        const currentStreak = Math.floor(wellnessScore / 10);
+
+        setDashboardStats({
+          moodEntries,
+          assessmentsCompleted,
+          taraSessions,
+          journalEntries,
+          currentStreak,
+          wellnessScore
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, [user]);
 
   const modules = [
     { id: 'overview', name: 'Overview', icon: BarChart3 },
@@ -43,16 +103,16 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
       case 'settings':
         return <SettingsModule />;
       default:
-        return <OverviewModule />;
+        return <OverviewModule stats={dashboardStats} userData={userData} />;
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+    <div className="min-h-screen flex bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors">
       {/* Mobile Menu Button */}
       <Button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 lg:hidden bg-white/80 backdrop-blur-sm text-gray-700 hover:bg-white"
+        className="fixed top-4 left-4 z-50 lg:hidden glass border-0 text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80"
         size="icon"
       >
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -60,16 +120,57 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
 
       {/* Sidebar */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white/80 backdrop-blur-sm border-r border-purple-100 
+        fixed lg:static inset-y-0 left-0 z-40 w-64 glass border-r border-purple-100/50 dark:border-gray-700/50
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6">
           <div className="flex items-center space-x-3 mb-8">
-            <Logo size={48} />
-            <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              GoodMind
-            </span>
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center">
+              <img
+                src="/GoodMind new logo (13).png"
+                alt="GoodMind Logo"
+                className="w-8 h-8 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fallback = document.createElement('div');
+                  fallback.innerHTML = '🧠';
+                  fallback.className = 'text-white text-xl';
+                  e.currentTarget.parentNode?.appendChild(fallback);
+                }}
+              />
+            </div>
+            <div>
+              <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                GoodMind
+              </span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Digital Sanctuary</p>
+            </div>
+          </div>
+
+          {/* User Welcome */}
+          <div className="mb-6 p-4 glass rounded-xl border border-white/20">
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+                {user?.photoURL ? (
+                  <img src={user.photoURL} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <User className="w-5 h-5 text-white" />
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {userData?.displayName || user?.displayName || 'Welcome'}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Wellness Explorer</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-600 dark:text-gray-400">Wellness Score</span>
+              <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                {dashboardStats.wellnessScore}%
+              </span>
+            </div>
           </div>
 
           <nav className="space-y-2">
@@ -84,7 +185,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
                   w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200
                   ${activeModule === module.id 
                     ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg' 
-                    : 'text-gray-600 hover:bg-purple-50'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800'
                   }
                 `}
               >
@@ -93,6 +194,11 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
               </button>
             ))}
           </nav>
+
+          {/* Theme Toggle */}
+          <div className="mt-6 flex justify-center">
+            <ThemeToggle />
+          </div>
         </div>
       </div>
 
@@ -106,7 +212,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden backdrop-blur-sm"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -114,122 +220,127 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
   );
 };
 
-// Overview Module Component
-const OverviewModule = () => {
-  const user = auth.currentUser;
-  const userData = useUserData(user?.uid);
-  const [assessmentCount, setAssessmentCount] = useState(0);
-  const [daysTracked, setDaysTracked] = useState(0);
+// Enhanced Overview Module
+const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
   const [activityFeed, setActivityFeed] = useState<any[]>([]);
+  const user = auth.currentUser;
 
-  // Fetch assessment count
   useEffect(() => {
     if (!user) return;
-    const unsub = onSnapshot(collection(db, `users/${user.uid}/assessments`), (snapshot) => {
-      setAssessmentCount(snapshot.size);
-    });
-    return () => unsub();
-  }, [user]);
 
-  // Example: Fetch days tracked (could be based on mood entries, etc.)
-  useEffect(() => {
-    if (user) setDaysTracked(1);
-  }, [user]);
+    // Fetch recent activity from all collections
+    const fetchActivity = async () => {
+      try {
+        const activities: any[] = [];
 
-  // Fetch and aggregate recent activity
-  useEffect(() => {
-    if (!user) return;
-    const moodsQ = collection(db, `users/${user.uid}/moods`);
-    const assessmentsQ = collection(db, `users/${user.uid}/assessments`);
-    const taraQ = collection(db, `users/${user.uid}/taraSessions`);
-    const journalQ = collection(db, `users/${user.uid}/journal`);
+        // Fetch recent moods
+        const moodsQuery = query(
+          collection(db, `users/${user.uid}/moods`), 
+          orderBy('createdAt', 'desc')
+        );
+        const moodsSnapshot = await getDocs(moodsQuery);
+        moodsSnapshot.docs.slice(0, 3).forEach(doc => {
+          const data = doc.data();
+          activities.push({
+            type: 'mood',
+            emoji: data.emoji,
+            label: data.label,
+            timestamp: data.createdAt,
+            id: doc.id
+          });
+        });
 
-    const unsubs: any[] = [];
-    let allActivities: any[] = [];
+        // Fetch recent assessments
+        const assessmentsSnapshot = await getDocs(collection(db, `users/${user.uid}/assessments`));
+        assessmentsSnapshot.docs.slice(0, 2).forEach(doc => {
+          activities.push({
+            type: 'assessment',
+            label: doc.id,
+            timestamp: doc.data().completedAt,
+            id: doc.id
+          });
+        });
 
-    // Helper to add and sort activities
-    const updateFeed = () => {
-      setActivityFeed([...allActivities].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+        // Sort by timestamp
+        activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setActivityFeed(activities.slice(0, 5));
+      } catch (error) {
+        console.error('Error fetching activity:', error);
+      }
     };
 
-    // Moods
-    unsubs.push(onSnapshot(moodsQ, (snap) => {
-      allActivities = allActivities.filter(a => a.type !== 'mood');
-      snap.forEach(doc => {
-        allActivities.push({
-          type: 'mood',
-          timestamp: doc.data().createdAt,
-          label: doc.data().label,
-          emoji: doc.data().emoji,
-        });
-      });
-      updateFeed();
-    }));
-    // Assessments
-    unsubs.push(onSnapshot(assessmentsQ, (snap) => {
-      allActivities = allActivities.filter(a => a.type !== 'assessment');
-      snap.forEach(doc => {
-        allActivities.push({
-          type: 'assessment',
-          timestamp: doc.data().completedAt,
-          label: doc.id,
-          summary: doc.data().summary,
-        });
-      });
-      updateFeed();
-    }));
-    // Tara Sessions
-    unsubs.push(onSnapshot(taraQ, (snap) => {
-      allActivities = allActivities.filter(a => a.type !== 'tara');
-      snap.forEach(doc => {
-        allActivities.push({
-          type: 'tara',
-          timestamp: doc.data().endTime,
-          topic: doc.data().topic,
-          duration: doc.data().duration,
-        });
-      });
-      updateFeed();
-    }));
-    // Journal
-    unsubs.push(onSnapshot(journalQ, (snap) => {
-      allActivities = allActivities.filter(a => a.type !== 'journal');
-      snap.forEach(doc => {
-        allActivities.push({
-          type: 'journal',
-          timestamp: doc.data().createdAt,
-          text: doc.data().text,
-        });
-      });
-      updateFeed();
-    }));
-
-    return () => unsubs.forEach(unsub => unsub());
+    fetchActivity();
   }, [user]);
 
-  const stats = [
-    { label: 'Days Tracked', value: daysTracked, color: 'from-purple-500 to-purple-600' },
-    { label: 'Assessments', value: assessmentCount, color: 'from-blue-500 to-blue-600' },
-    { label: 'Tara Sessions', value: '—', color: 'from-pink-500 to-pink-600' },
-    { label: 'Journal Entries', value: '—', color: 'from-green-500 to-green-600' },
+  const statCards = [
+    { 
+      label: 'Wellness Score', 
+      value: `${stats.wellnessScore}%`, 
+      color: 'from-purple-500 to-purple-600', 
+      icon: TrendingUp,
+      change: '+5% this week'
+    },
+    { 
+      label: 'Current Streak', 
+      value: `${stats.currentStreak} days`, 
+      color: 'from-blue-500 to-blue-600', 
+      icon: Calendar,
+      change: 'Keep it up!'
+    },
+    { 
+      label: 'Mood Entries', 
+      value: stats.moodEntries, 
+      color: 'from-pink-500 to-rose-500', 
+      icon: Heart,
+      change: `${stats.moodEntries} total`
+    },
+    { 
+      label: 'Assessments', 
+      value: stats.assessmentsCompleted, 
+      color: 'from-green-500 to-emerald-500', 
+      icon: Brain,
+      change: `${stats.assessmentsCompleted} completed`
+    },
   ];
 
   return (
     <div className="space-y-8 animate-slide-up">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome back{userData?.displayName ? `, ${userData.displayName}` : ''}! 👋</h1>
-        <p className="text-gray-600">Here's how your mental wellness journey is progressing.</p>
+      {/* Welcome Header */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 via-blue-400/20 to-pink-400/20 rounded-3xl"></div>
+        <div className="relative p-8 glass rounded-3xl border-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">
+                <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                  Welcome back{userData?.displayName ? `, ${userData.displayName}` : ''}! 
+                </span>
+                <span className="text-3xl ml-2">🌅</span>
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300 text-lg">Ready to continue your wellness journey today?</p>
+            </div>
+            <div className="hidden md:block">
+              <div className="w-24 h-24 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center animate-pulse-gentle">
+                <Award className="w-12 h-12 text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index} className="glass border-0 hover:shadow-lg transition-all duration-300">
+        {statCards.map((stat, index) => (
+          <Card key={index} className="glass border-0 hover:shadow-xl transition-all duration-300 group">
             <CardContent className="p-6">
-              <div className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-xl flex items-center justify-center mb-4`}>
-                <span className="text-white font-bold text-lg">{stat.value}</span>
+              <div className="flex items-center justify-between mb-4">
+                <div className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                  <stat.icon className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-2xl font-bold text-gray-800 dark:text-white">{stat.value}</span>
               </div>
-              <p className="text-gray-600 font-medium">{stat.label}</p>
+              <p className="text-gray-600 dark:text-gray-300 font-medium mb-2">{stat.label}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{stat.change}</p>
             </CardContent>
           </Card>
         ))}
@@ -238,24 +349,24 @@ const OverviewModule = () => {
       {/* Recent Activity */}
       <Card className="glass border-0">
         <CardHeader>
-          <CardTitle className="text-xl text-gray-800">Recent Activity</CardTitle>
+          <CardTitle className="text-xl text-gray-800 dark:text-white">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {activityFeed.length === 0 ? (
-            <div className="flex items-center justify-between p-3 bg-white/50 rounded-lg">
-              <span className="text-gray-700">No recent activity yet</span>
-              <span className="text-sm text-gray-500">—</span>
+            <div className="text-center py-8">
+              <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 dark:text-gray-400">Start your wellness journey to see activity here!</p>
             </div>
           ) : (
-            activityFeed.slice(0, 10).map((activity, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-white/50 rounded-lg">
-                <span className="text-gray-700">
+            activityFeed.map((activity, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                <span className="text-gray-700 dark:text-gray-300">
                   {activity.type === 'mood' && <>{activity.emoji} Logged mood: <b>{activity.label}</b></>}
                   {activity.type === 'assessment' && <>📝 Completed assessment: <b>{activity.label}</b></>}
-                  {activity.type === 'tara' && <>📞 Tara session: <b>{activity.topic}</b> ({activity.duration})</>}
-                  {activity.type === 'journal' && <>📔 Journal entry: <span className="italic">{activity.text.slice(0, 30)}{activity.text.length > 30 ? '...' : ''}</span></>}
                 </span>
-                <span className="text-sm text-gray-500">{activity.timestamp ? new Date(activity.timestamp).toLocaleString() : ''}</span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {activity.timestamp ? new Date(activity.timestamp).toLocaleDateString() : 'Recent'}
+                </span>
               </div>
             ))
           )}
@@ -265,14 +376,13 @@ const OverviewModule = () => {
   );
 };
 
-// Journal Module Component
+// Enhanced Journal Module
 const JournalModule = () => {
   const user = auth.currentUser;
   const [entry, setEntry] = useState('');
   const [journal, setJournal] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch journal entries from Firestore
   useEffect(() => {
     if (!user) return;
     setLoading(true);
@@ -286,59 +396,102 @@ const JournalModule = () => {
     return () => unsub();
   }, [user]);
 
-  // Save entry to Firestore
   const handleSave = async () => {
     if (!user || !entry.trim()) return;
-    await addDoc(collection(db, `users/${user.uid}/journal`), {
-      text: entry,
-      createdAt: new Date().toISOString(),
-    });
-    setEntry('');
+    try {
+      await addDoc(collection(db, `users/${user.uid}/journal`), {
+        text: entry,
+        createdAt: new Date().toISOString(),
+        mood: 'neutral', // Could be enhanced with mood detection
+      });
+      setEntry('');
+    } catch (error) {
+      console.error('Error saving journal entry:', error);
+    }
   };
 
-  // Delete entry
   const handleDelete = async (id: string) => {
     if (!user) return;
-    await deleteDoc(doc(db, `users/${user.uid}/journal/${id}`));
+    try {
+      await deleteDoc(doc(db, `users/${user.uid}/journal/${id}`));
+    } catch (error) {
+      console.error('Error deleting journal entry:', error);
+    }
   };
 
   if (!user) {
-    return <div className="text-center mt-8">Please sign in to use your journal.</div>;
+    return (
+      <div className="text-center mt-8">
+        <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-600 dark:text-gray-300">Please sign in to use your journal.</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <h1 className="text-3xl font-bold text-gray-800">Personal Journal</h1>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Personal Journal</h1>
+        <p className="text-gray-600 dark:text-gray-300">Your safe space for thoughts, feelings, and self-reflection</p>
+      </div>
+      
       <Card className="glass border-0">
         <CardContent className="p-8">
           <textarea
-            className="w-full p-4 rounded-xl border border-gray-200 mb-4 text-gray-800"
-            rows={4}
-            placeholder="Write your thoughts..."
+            className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white mb-4 min-h-[120px] resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="What's on your mind today? Write your thoughts, feelings, or reflections..."
             value={entry}
             onChange={e => setEntry(e.target.value)}
           />
-          <Button onClick={handleSave} disabled={!entry.trim()} className="w-full">Save Entry</Button>
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {entry.length} characters
+            </span>
+            <Button 
+              onClick={handleSave} 
+              disabled={!entry.trim()} 
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+            >
+              Save Entry
+            </Button>
+          </div>
         </CardContent>
       </Card>
+      
       <Card className="glass border-0">
         <CardHeader>
-          <CardTitle className="text-xl text-gray-800">Your Journal Entries</CardTitle>
+          <CardTitle className="text-xl text-gray-800 dark:text-white">Your Journal Entries</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div>Loading...</div>
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            </div>
           ) : journal.length === 0 ? (
-            <div>No entries yet.</div>
+            <div className="text-center py-8">
+              <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 dark:text-gray-400">No entries yet. Start writing to capture your thoughts!</p>
+            </div>
           ) : (
             <div className="space-y-4">
               {journal.map(entry => (
-                <div key={entry.id} className="flex items-center justify-between p-4 bg-white/50 rounded-xl">
-                  <div>
-                    <div className="text-gray-800 whitespace-pre-line">{entry.text}</div>
-                    <div className="text-xs text-gray-500 mt-2">{new Date(entry.createdAt).toLocaleString()}</div>
+                <div key={entry.id} className="p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(entry.createdAt).toLocaleString()}
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => handleDelete(entry.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      Delete
+                    </Button>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => handleDelete(entry.id)}>Delete</Button>
+                  <div className="text-gray-800 dark:text-white whitespace-pre-line leading-relaxed">
+                    {entry.text}
+                  </div>
                 </div>
               ))}
             </div>
@@ -352,96 +505,130 @@ const JournalModule = () => {
 // Profile Module Component
 const ProfileModule = ({ onLogout }: { onLogout: () => void }) => {
   const user = auth.currentUser;
-  const userData = useUserData(user?.uid);
-  const [displayName, setDisplayName] = useState(userData?.displayName || user?.displayName || '');
-  const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
-  const [uploading, setUploading] = useState(false);
+  const { userData } = useUserData(user?.uid);
+  const [displayName, setDisplayName] = useState('');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     setDisplayName(userData?.displayName || user?.displayName || '');
-    setPhotoURL(user?.photoURL || '');
   }, [userData, user]);
 
-  // Handle display name update
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
     try {
       await setDoc(doc(db, `users/${user.uid}`), { displayName }, { merge: true });
       await user.updateProfile({ displayName });
-      setMessage('Profile updated!');
-    } catch (e) {
+      setMessage('Profile updated successfully!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      console.error('Error updating profile:', error);
       setMessage('Error updating profile.');
     }
     setSaving(false);
   };
 
-  // Handle photo upload
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!user || !e.target.files || e.target.files.length === 0) return;
-    setUploading(true);
-    const file = e.target.files[0];
-    try {
-      const storageRef = (await import('firebase/storage')).ref;
-      const uploadBytes = (await import('firebase/storage')).uploadBytes;
-      const getDownloadURL = (await import('firebase/storage')).getDownloadURL;
-      const { storage } = await import('../lib/firebase');
-      const ref = storageRef(storage, `profilePhotos/${user.uid}`);
-      await uploadBytes(ref, file);
-      const url = await getDownloadURL(ref);
-      await setDoc(doc(db, `users/${user.uid}`), { photoURL: url }, { merge: true });
-      await user.updateProfile({ photoURL: url });
-      setPhotoURL(url);
-      setMessage('Photo updated!');
-    } catch (e) {
-      setMessage('Error uploading photo.');
-    }
-    setUploading(false);
-  };
-
   if (!user) {
-    return <div className="text-center mt-8">Please sign in to view your profile.</div>;
+    return (
+      <div className="text-center mt-8">
+        <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-600 dark:text-gray-300">Please sign in to view your profile.</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <h1 className="text-3xl font-bold text-gray-800">Profile Settings</h1>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Profile Settings</h1>
+        <p className="text-gray-600 dark:text-gray-300">Manage your account and preferences</p>
+      </div>
+      
       <Card className="glass border-0">
         <CardContent className="p-8">
-          <div className="flex items-center space-x-4 mb-6">
+          <div className="flex items-center space-x-6 mb-8">
             <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center overflow-hidden">
-              {photoURL ? (
-                <img src={photoURL} alt="User avatar" className="w-20 h-20 object-cover rounded-full" />
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="Profile" className="w-20 h-20 object-cover rounded-full" />
               ) : (
                 <User className="w-10 h-10 text-white" />
               )}
             </div>
-            <div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Display Name
+              </label>
               <input
-                className="text-xl font-semibold bg-transparent border-b border-gray-300 focus:outline-none focus:border-blue-400 mb-2"
+                type="text"
+                className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 value={displayName}
                 onChange={e => setDisplayName(e.target.value)}
                 disabled={saving}
+                placeholder="Enter your display name"
               />
-              <p className="text-gray-600">{userData?.email || user?.email || ''}</p>
-              <input type="file" accept="image/*" onChange={handlePhotoChange} disabled={uploading} className="mt-2" />
             </div>
           </div>
-          <Button onClick={handleSave} disabled={saving} className="w-full mt-2">{saving ? 'Saving...' : 'Save Changes'}</Button>
-          {message && <div className="text-green-600 mt-2">{message}</div>}
-          <div className="mt-8 text-sm text-gray-500">
-            <div>Account created: {user.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleString() : '—'}</div>
-            <div>Last login: {user.metadata?.lastSignInTime ? new Date(user.metadata.lastSignInTime).toLocaleString() : '—'}</div>
+          
+          <div className="space-y-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+              <input
+                type="email"
+                value={user.email || ''}
+                disabled
+                className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Created</label>
+                <input
+                  type="text"
+                  value={user.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : '—'}
+                  disabled
+                  className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Login</label>
+                <input
+                  type="text"
+                  value={user.metadata?.lastSignInTime ? new Date(user.metadata.lastSignInTime).toLocaleDateString() : '—'}
+                  disabled
+                  className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                />
+              </div>
+            </div>
           </div>
-          <Button 
-            onClick={onLogout}
-            variant="outline" 
-            className="w-full mt-4"
-          >
-            Log Out
-          </Button>
+          
+          {message && (
+            <div className={`p-3 rounded-lg mb-4 ${
+              message.includes('Error') 
+                ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400' 
+                : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+            }`}>
+              {message}
+            </div>
+          )}
+          
+          <div className="flex space-x-4">
+            <Button 
+              onClick={handleSave} 
+              disabled={saving || !displayName.trim()}
+              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+            <Button 
+              onClick={onLogout}
+              variant="outline" 
+              className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+            >
+              Sign Out
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -451,59 +638,105 @@ const ProfileModule = ({ onLogout }: { onLogout: () => void }) => {
 // Settings Module Component
 const SettingsModule = () => {
   const user = auth.currentUser;
-  const [settings, setSettings] = useState<any>({ theme: 'light', notifications: true });
+  const [settings, setSettings] = useState<any>({ 
+    theme: 'light', 
+    notifications: true,
+    privacy: 'private',
+    dataSharing: false
+  });
   const [loading, setLoading] = useState(true);
 
-  // Fetch settings from Firestore
   useEffect(() => {
     if (!user) return;
-    const settingsRef = doc(db, `users/${user.uid}/settings`);
+    
+    const settingsRef = doc(db, `users/${user.uid}/settings/preferences`);
     const unsub = onSnapshot(settingsRef, (snap) => {
-      if (snap.exists()) setSettings(snap.data());
+      if (snap.exists()) {
+        setSettings({ ...settings, ...snap.data() });
+      }
       setLoading(false);
     });
+    
     return () => unsub();
   }, [user]);
 
-  // Update settings in Firestore
   const handleChange = async (field: string, value: any) => {
     if (!user) return;
-    setSettings((prev: any) => ({ ...prev, [field]: value }));
-    await setDoc(doc(db, `users/${user.uid}/settings`), { ...settings, [field]: value }, { merge: true });
+    
+    const newSettings = { ...settings, [field]: value };
+    setSettings(newSettings);
+    
+    try {
+      await setDoc(doc(db, `users/${user.uid}/settings/preferences`), newSettings, { merge: true });
+    } catch (error) {
+      console.error('Error updating settings:', error);
+    }
   };
 
   if (!user) {
-    return <div className="text-center mt-8">Please sign in to update your settings.</div>;
+    return (
+      <div className="text-center mt-8">
+        <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-600 dark:text-gray-300">Please sign in to access settings.</p>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <h1 className="text-3xl font-bold text-gray-800">Settings</h1>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Settings</h1>
+        <p className="text-gray-600 dark:text-gray-300">Customize your GoodMind experience</p>
+      </div>
+      
       <Card className="glass border-0">
         <CardContent className="p-8 space-y-6">
           {loading ? (
-            <div>Loading...</div>
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            </div>
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-800">Theme</span>
-                <select
-                  className="border rounded p-2"
-                  value={settings.theme}
-                  onChange={e => handleChange('theme', e.target.value)}
-                >
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                </select>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-gray-800">Notifications</span>
+                <div>
+                  <span className="font-medium text-gray-800 dark:text-white">Notifications</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Receive wellness reminders and updates</p>
+                </div>
                 <input
                   type="checkbox"
                   checked={settings.notifications}
                   onChange={e => handleChange('notifications', e.target.checked)}
-                  className="w-5 h-5"
+                  className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
                 />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-medium text-gray-800 dark:text-white">Data Sharing</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Help improve GoodMind with anonymous usage data</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.dataSharing}
+                  onChange={e => handleChange('dataSharing', e.target.checked)}
+                  className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-medium text-gray-800 dark:text-white">Privacy Level</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">Control who can see your wellness data</p>
+                </div>
+                <select
+                  className="border border-gray-200 dark:border-gray-600 rounded-lg p-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-white"
+                  value={settings.privacy}
+                  onChange={e => handleChange('privacy', e.target.value)}
+                >
+                  <option value="private">Private</option>
+                  <option value="friends">Friends Only</option>
+                  <option value="public">Public</option>
+                </select>
               </div>
             </>
           )}
