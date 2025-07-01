@@ -36,9 +36,9 @@ const Landing = ({ onGetStarted }: LandingProps) => {
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Enhanced Background with Animated Gradients */}
-      <div className="absolute inset-0 bg-gradient-to-br from-green-100 via-green-50 to-green-200 animate-gradient"></div>
-      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-teal-50/30 to-blue-100/40 animate-pulse-soft"></div>
+      {/* Enhanced Background with Beautiful Gradient */}
+      <div className="absolute inset-0 bg-goodmind-gradient animate-gradient"></div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/20 animate-pulse-soft"></div>
       
       {/* Floating Elements for Visual Appeal */}
       <div className="absolute top-20 left-10 w-20 h-20 bg-green-200/30 rounded-full blur-xl animate-float-gentle"></div>

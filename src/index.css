@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* GoodMind - Modern Mental Wellness Platform */
+/* GoodMind - Modern Mental Wellness Platform with Custom Gradient */
 
 @layer base {
   :root {
@@ -36,12 +36,17 @@
 
     --radius: 1rem;
 
-    /* GoodMind Brand Colors */
-    --goodmind-green: 142 76% 36%;
-    --goodmind-teal: 174 72% 56%;
-    --goodmind-sage: 120 13% 60%;
-    --goodmind-cream: 45 29% 97%;
-    --goodmind-dark: 220 13% 18%;
+    /* Custom Gradient Colors from User */
+    --link-water: #dae3f4;
+    --albescent-white: #f6ddd2;
+    --skeptic: #cbe8de;
+    --periglacial-blue: #dce4d6;
+    --paris-white: #d4e4d9;
+    --satin-linen: #e4e3d3;
+    --ecru-white: #f0ecdb;
+    --snow-drift: #f0f4f2;
+    --cinderella: #fccccc;
+    --soft-peach: #f4eced;
   }
 
   .dark {
@@ -73,10 +78,33 @@
   }
 
   body {
-    @apply bg-gradient-to-br from-pink-50 via-green-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-foreground font-sans transition-colors duration-500;
+    @apply text-foreground font-sans transition-colors duration-500;
     min-height: 100vh;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #fef7f0 0%, #f0fdf4 25%, #ecfdf5 50%, #d1fae5 75%, #a7f3d0 100%);
+    /* Beautiful gradient background using user's colors */
+    background: linear-gradient(135deg, 
+      var(--link-water) 0%, 
+      var(--albescent-white) 12.5%, 
+      var(--skeptic) 25%, 
+      var(--periglacial-blue) 37.5%, 
+      var(--paris-white) 50%, 
+      var(--satin-linen) 62.5%, 
+      var(--ecru-white) 75%, 
+      var(--snow-drift) 87.5%, 
+      var(--soft-peach) 100%
+    );
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    background: linear-gradient(135deg, 
+      #1a1a2e 0%, 
+      #16213e 25%, 
+      #0f3460 50%, 
+      #533483 75%, 
+      #e94560 100%
+    );
+    background-attachment: fixed;
   }
 
   /* Custom scrollbar */
@@ -222,15 +250,33 @@
 
 /* Gradient Backgrounds */
 .bg-goodmind-gradient {
-  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 25%, #d1fae5 50%, #a7f3d0 75%, #6ee7b7 100%);
+  background: linear-gradient(135deg, 
+    var(--link-water) 0%, 
+    var(--skeptic) 25%, 
+    var(--paris-white) 50%, 
+    var(--ecru-white) 75%, 
+    var(--snow-drift) 100%
+  );
 }
 
 .bg-goodmind-gradient-soft {
-  background: linear-gradient(135deg, #fefefe 0%, #f8fafc 25%, #f1f5f9 50%, #e2e8f0 75%, #cbd5e1 100%);
+  background: linear-gradient(135deg, 
+    var(--soft-peach) 0%, 
+    var(--cinderella) 25%, 
+    var(--albescent-white) 50%, 
+    var(--satin-linen) 75%, 
+    var(--periglacial-blue) 100%
+  );
 }
 
 .bg-goodmind-hero {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 25%, #a7f3d0 50%, #6ee7b7 75%, #34d399 100%);
+  background: linear-gradient(135deg, 
+    var(--snow-drift) 0%, 
+    var(--ecru-white) 25%, 
+    var(--paris-white) 50%, 
+    var(--skeptic) 75%, 
+    var(--link-water) 100%
+  );
 }
 
 /* Enhanced Button Styles */
@@ -370,4 +416,36 @@
                     radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
                     radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.3) 0%, transparent 50%);
   animation: float-gentle 15s ease-in-out infinite;
+}
+
+/* Mobile Menu Scrolling Fix */
+.mobile-menu-container {
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 197, 94, 0.3) transparent;
+}
+
+.mobile-menu-content {
+  min-height: 100vh;
+  padding-bottom: 2rem;
+}
+
+/* Ensure mobile menu is fully scrollable */
+@media (max-width: 1024px) {
+  .mobile-menu-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: 40;
+  }
+  
+  .mobile-menu-content {
+    padding-top: 1rem;
+    padding-bottom: 4rem;
+  }
 }

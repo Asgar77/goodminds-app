@@ -122,7 +122,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-green-50 via-teal-50 to-blue-50">
+    <div className="min-h-screen flex">
       {/* Mobile Menu Button */}
       <Button
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -132,16 +132,17 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </Button>
 
-      {/* Enhanced Sidebar with Smaller, Organized Logos - NO TEXT */}
+      {/* Enhanced Sidebar with Mobile Scrolling Fix */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-40 w-80 glass-modern border-r border-white/20
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        mobile-menu-container
       `}>
-        <div className="p-6 h-full flex flex-col">
-          {/* Header with Smaller, More Organized Logos - REMOVED TEXT */}
-          <div className="flex items-center justify-between mb-8">
-            {/* GoodMind Logo - Smaller and More Organized - NO TEXT */}
+        <div className="mobile-menu-content p-6 flex flex-col">
+          {/* Header with Smaller, More Organized Logos */}
+          <div className="flex items-center justify-between mb-8 flex-shrink-0">
+            {/* GoodMind Logo - Smaller and More Organized */}
             <div className="flex items-center">
               <div className="w-12 h-12 relative">
                 <img
@@ -159,7 +160,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
               </div>
             </div>
             
-            {/* Springfield Logo - Smaller and More Organized - NO TEXT */}
+            {/* Springfield Logo - Smaller and More Organized */}
             <div className="w-10 h-10 relative">
               <img
                 src="/images-removebg-preview.png"
@@ -177,7 +178,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
           </div>
 
           {/* User Welcome with First Name */}
-          <div className="mb-6 p-4 glass-modern rounded-2xl border border-white/20">
+          <div className="mb-6 p-4 glass-modern rounded-2xl border border-white/20 flex-shrink-0">
             <div className="flex items-center space-x-3 mb-3">
               <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-teal-400 rounded-full flex items-center justify-center">
                 {user?.photoURL ? (
@@ -207,8 +208,8 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
             </div>
           </div>
 
-          {/* Navigation with Book Appointment */}
-          <nav className="space-y-2 flex-1">
+          {/* Navigation with Scrollable Container */}
+          <nav className="space-y-2 flex-1 overflow-y-auto">
             {modules.map((module) => (
               <button
                 key={module.id}
@@ -241,7 +242,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
           </nav>
 
           {/* Theme Toggle */}
-          <div className="mt-6 flex justify-center">
+          <div className="mt-6 flex justify-center flex-shrink-0">
             <ThemeToggle />
           </div>
         </div>
