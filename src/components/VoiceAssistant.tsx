@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Phone, PhoneCall, Mic, MicOff, Volume2, VolumeX, MessageCircle, Calendar, ArrowLeft, Loader2 } from 'lucide-react';
+import { Phone, PhoneCall, Mic, MicOff, Volume2, VolumeX, MessageCircle, Calendar, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -77,12 +77,22 @@ const VoiceAssistant = () => {
     window.open('https://calendly.com/goodmind/appointment1?month=2025-07', '_blank');
   };
 
-  // Enhanced ElevenLabs Agent API integration
+  // Enhanced ElevenLabs Agent API integration with better error handling
   const connectToElevenLabsAgent = async () => {
     if (!elevenLabsApiKey || !elevenLabsAgentId) {
       toast({
         title: "Configuration Error",
-        description: "ElevenLabs API is not properly configured. Please check your settings.",
+        description: "ElevenLabs API credentials are missing. Please check your environment configuration.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Check if credentials are still placeholder values
+    if (elevenLabsApiKey === 'your_elevenlabs_api_key_here' || elevenLabsAgentId === 'your_agent_id_here') {
+      toast({
+        title: "Configuration Required",
+        description: "Please replace the placeholder ElevenLabs credentials in your .env file with actual values from your ElevenLabs dashboard.",
         variant: "destructive",
       });
       return false;
@@ -108,15 +118,20 @@ const VoiceAssistant = () => {
           description: "Successfully connected to ElevenLabs Agent. TARA is ready to help!",
         });
         return true;
+      } else if (response.status === 404) {
+        throw new Error(`Agent not found. Please verify your Agent ID (${elevenLabsAgentId}) exists in your ElevenLabs dashboard.`);
+      } else if (response.status === 401) {
+        throw new Error('Invalid API key. Please check your ElevenLabs API key in the .env file.');
       } else {
-        throw new Error(`API responded with status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`API responded with status: ${response.status}. ${errorText}`);
       }
     } catch (error) {
       console.error('Failed to connect to ElevenLabs Agent:', error);
       setConnectionStatus('error');
       toast({
         title: "Connection Failed",
-        description: "Unable to connect to TARA. Please check your internet connection and try again.",
+        description: error instanceof Error ? error.message : "Unable to connect to TARA. Please check your ElevenLabs configuration.",
         variant: "destructive",
       });
       return false;
@@ -404,12 +419,19 @@ const VoiceAssistant = () => {
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2 text-red-700">
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              <AlertCircle className="w-5 h-5" />
               <span className="font-medium">ElevenLabs Configuration Required</span>
             </div>
-            <p className="text-red-600 text-sm mt-1">
-              Please ensure your ElevenLabs API key and Agent ID are properly configured.
-            </p>
+            <div className="text-red-600 text-sm mt-2 space-y-1">
+              <p>To use TARA, you need to configure your ElevenLabs credentials:</p>
+              <ol className="list-decimal list-inside space-y-1 ml-4">
+                <li>Get your API key from <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noopener noreferrer" className="underline">ElevenLabs API Keys</a></li>
+                <li>Create an agent at <a href="https://elevenlabs.io/app/conversational-ai" target="_blank" rel="noopener noreferrer" className="underline">ElevenLabs Conversational AI</a></li>
+                <li>Get a voice ID from <a href="https://elevenlabs.io/app/voice-lab" target="_blank" rel="noopener noreferrer" className="underline">ElevenLabs Voice Lab</a></li>
+                <li>Update your .env file with the actual values</li>
+                <li>Restart your development server</li>
+              </ol>
+            </div>
           </CardContent>
         </Card>
       )}
