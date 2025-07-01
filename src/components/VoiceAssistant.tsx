@@ -24,6 +24,7 @@ const VoiceAssistant = () => {
   const [showConfigHelp, setShowConfigHelp] = useState(false);
   const [websocket, setWebsocket] = useState<WebSocket | null>(null);
   const [signedUrl, setSignedUrl] = useState<string>('');
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const { toast } = useToast();
   const user = auth.currentUser;
 
@@ -42,6 +43,26 @@ const VoiceAssistant = () => {
       setConnectionStatus('disconnected');
       setShowConfigHelp(false);
     }
+  }, []);
+
+  // Initialize audio context
+  useEffect(() => {
+    const initAudioContext = async () => {
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        setAudioContext(ctx);
+      } catch (error) {
+        console.error('Failed to initialize audio context:', error);
+      }
+    };
+    
+    initAudioContext();
+    
+    return () => {
+      if (audioContext) {
+        audioContext.close();
+      }
+    };
   }, []);
 
   // Fetch recent sessions
@@ -144,6 +165,41 @@ const VoiceAssistant = () => {
     }
   };
 
+  // Play audio from base64 data
+  const playAudioFromBase64 = async (base64Audio: string) => {
+    if (!audioContext) {
+      console.error('Audio context not available');
+      return;
+    }
+
+    try {
+      // Decode base64 to array buffer
+      const binaryString = atob(base64Audio);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+
+      // Decode audio data
+      const audioBuffer = await audioContext.decodeAudioData(bytes.buffer);
+      
+      // Create and play audio source
+      const source = audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioContext.destination);
+      
+      source.onended = () => {
+        setIsSpeaking(false);
+      };
+      
+      setIsSpeaking(true);
+      source.start();
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      setIsSpeaking(false);
+    }
+  };
+
   // Connect to ElevenLabs Agent using WebSocket with signed URL
   const connectToElevenLabsAgent = async () => {
     setIsConnecting(true);
@@ -169,54 +225,59 @@ const VoiceAssistant = () => {
           title: "Connected to TARA",
           description: "Successfully connected to ElevenLabs Agent. TARA is ready to help!",
         });
-
-        // Send initial message to start conversation
-        const initialMessage = {
-          type: 'conversation.item.create',
-          item: {
-            type: 'message',
-            role: 'user',
-            content: [{
-              type: 'input_text',
-              text: "Hello, I'm a student looking for mental health support. Can you introduce yourself?"
-            }]
-          }
-        };
-        
-        ws.send(JSON.stringify(initialMessage));
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('WebSocket message received:', data);
+          console.log('WebSocket message received:', data.type, data);
           
           // Handle different message types from ElevenLabs
           switch (data.type) {
             case 'conversation.item.created':
-              if (data.item.role === 'assistant' && data.item.content) {
-                const textContent = data.item.content.find((c: any) => c.type === 'text');
-                if (textContent) {
-                  setConversation(prev => [...prev, {
-                    speaker: 'tara',
-                    message: textContent.text,
-                    timestamp: new Date()
-                  }]);
+              if (data.item && data.item.role === 'assistant') {
+                // Handle assistant response
+                const content = data.item.content;
+                if (content && content.length > 0) {
+                  const textContent = content.find((c: any) => c.type === 'text');
+                  if (textContent && textContent.text) {
+                    setConversation(prev => [...prev, {
+                      speaker: 'tara',
+                      message: textContent.text,
+                      timestamp: new Date()
+                    }]);
+                  }
                 }
               }
               break;
               
             case 'response.audio.delta':
-              // Handle audio streaming if needed
+              // Handle streaming audio
               if (data.delta) {
-                // Process audio data
-                console.log('Audio delta received');
+                console.log('Received audio delta');
+                // For now, we'll handle complete audio chunks
+              }
+              break;
+
+            case 'response.audio.done':
+              // Handle complete audio response
+              if (data.response && data.response.audio) {
+                console.log('Received complete audio response');
+                playAudioFromBase64(data.response.audio);
               }
               break;
               
             case 'response.done':
               console.log('Response completed');
               setIsSpeaking(false);
+              break;
+
+            case 'session.created':
+              console.log('Session created:', data.session);
+              break;
+
+            case 'session.updated':
+              console.log('Session updated:', data.session);
               break;
               
             case 'error':
@@ -227,6 +288,9 @@ const VoiceAssistant = () => {
                 variant: "destructive",
               });
               break;
+
+            default:
+              console.log('Unhandled message type:', data.type);
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -288,6 +352,11 @@ const VoiceAssistant = () => {
       return;
     }
 
+    // Resume audio context if needed
+    if (audioContext && audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+
     // Connect to ElevenLabs Agent first
     const connected = await connectToElevenLabsAgent();
     if (!connected) return;
@@ -308,6 +377,13 @@ const VoiceAssistant = () => {
     } catch (error) {
       console.error('Error starting session:', error);
     }
+
+    // Send initial greeting to start the conversation
+    setTimeout(() => {
+      if (websocket && websocket.readyState === WebSocket.OPEN) {
+        sendMessage("Hello TARA, I'm a student and I'd like to talk about my mental health and academic stress.");
+      }
+    }, 1000);
   };
 
   const endCall = async () => {
@@ -350,19 +426,20 @@ const VoiceAssistant = () => {
   const sendMessage = (message: string) => {
     if (!websocket || websocket.readyState !== WebSocket.OPEN) {
       console.error('WebSocket not connected');
+      toast({
+        title: "Connection Error",
+        description: "Not connected to TARA. Please try reconnecting.",
+        variant: "destructive",
+      });
       return;
     }
 
+    console.log('Sending message to TARA:', message);
+
+    // Send message using the correct ElevenLabs format
     const messageData = {
-      type: 'conversation.item.create',
-      item: {
-        type: 'message',
-        role: 'user',
-        content: [{
-          type: 'input_text',
-          text: message
-        }]
-      }
+      user_audio: null, // For text input
+      text: message
     };
 
     websocket.send(JSON.stringify(messageData));
