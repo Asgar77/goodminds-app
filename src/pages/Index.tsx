@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Landing from '@/components/Landing';
 import Dashboard from '@/components/Dashboard';
-import GoogleAuth from '@/components/GoogleAuth';
+import AuthModal from '@/components/AuthModal';
 import SplashScreen from '@/components/SplashScreen';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
@@ -22,7 +22,7 @@ const Index = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Listen for authentication state changes
+  // Listen for authentication state changes and handle redirect results
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsAuthenticated(!!user);
@@ -33,8 +33,28 @@ const Index = () => {
       }
     });
 
+    // Check for redirect result on component mount
+    getRedirectResult(auth).then((result) => {
+      if (result) {
+        console.log("Redirect sign-in successful:", result.user);
+        toast({
+          title: "Welcome to GoodMind!",
+          description: "Successfully signed in with Google.",
+        });
+      }
+    }).catch((error) => {
+      console.error("Redirect sign-in error:", error);
+      if (error.code !== 'auth/null-user') {
+        toast({
+          title: "Authentication Error",
+          description: "Sign-in failed. Please try again.",
+          variant: "destructive",
+        });
+      }
+    });
+
     return () => unsubscribe();
-  }, [showSplash]);
+  }, [showSplash, toast]);
 
   const handleGetStarted = () => {
     setShowAuth(true);
@@ -88,30 +108,17 @@ const Index = () => {
     return <Dashboard onLogout={handleLogout} />;
   }
 
-  // Show authentication modal
-  if (showAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
-        <div className="w-full max-w-md">
-          <GoogleAuth 
-            onAuthSuccess={handleAuthSuccess}
-            onAuthError={handleAuthError}
-          />
-          <div className="text-center mt-6">
-            <button
-              onClick={() => setShowAuth(false)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm"
-            >
-              ← Back to landing page
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show landing page
-  return <Landing onGetStarted={handleGetStarted} />;
+  // Show landing page with auth modal
+  return (
+    <>
+      <Landing onGetStarted={handleGetStarted} />
+      <AuthModal 
+        isOpen={showAuth}
+        onClose={() => setShowAuth(false)}
+        onAuthSuccess={handleAuthSuccess}
+      />
+    </>
+  );
 };
 
 export default Index;
