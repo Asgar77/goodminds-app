@@ -6,10 +6,9 @@ import { auth, db } from '../lib/firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
-// ElevenLabs configuration - these should be set in your environment variables
+// ElevenLabs configuration
 const elevenLabsApiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const elevenLabsAgentId = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
-const elevenLabsVoiceId = import.meta.env.VITE_ELEVENLABS_VOICE_ID || "XRlny9TzSxQhHzOusWWe";
 
 const VoiceAssistant = () => {
   const [isCallActive, setIsCallActive] = useState(false);
@@ -17,13 +16,14 @@ const VoiceAssistant = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [transcript, setTranscript] = useState('');
   const [conversation, setConversation] = useState<any[]>([]);
   const [sessionDuration, setSessionDuration] = useState(0);
   const [recentSessions, setRecentSessions] = useState<any[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const [errorDetails, setErrorDetails] = useState<string>('');
   const [showConfigHelp, setShowConfigHelp] = useState(false);
+  const [websocket, setWebsocket] = useState<WebSocket | null>(null);
+  const [signedUrl, setSignedUrl] = useState<string>('');
   const { toast } = useToast();
   const user = auth.currentUser;
 
@@ -32,7 +32,6 @@ const VoiceAssistant = () => {
     console.log('Checking ElevenLabs configuration...');
     console.log('API Key:', elevenLabsApiKey ? `${elevenLabsApiKey.substring(0, 10)}...` : 'Missing');
     console.log('Agent ID:', elevenLabsAgentId || 'Missing');
-    console.log('Voice ID:', elevenLabsVoiceId || 'Missing');
 
     if (!elevenLabsApiKey || !elevenLabsAgentId) {
       console.warn('ElevenLabs configuration missing');
@@ -76,6 +75,15 @@ const VoiceAssistant = () => {
     return () => clearInterval(interval);
   }, [isCallActive]);
 
+  // Cleanup WebSocket on unmount
+  useEffect(() => {
+    return () => {
+      if (websocket) {
+        websocket.close();
+      }
+    };
+  }, [websocket]);
+
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -86,19 +94,16 @@ const VoiceAssistant = () => {
     window.open('https://calendly.com/goodmind/appointment1?month=2025-07', '_blank');
   };
 
-  // Test ElevenLabs Agent connection
-  const testAgentConnection = async () => {
+  // Get signed URL from ElevenLabs
+  const getSignedUrl = async () => {
     if (!elevenLabsApiKey || !elevenLabsAgentId) {
-      return {
-        success: false,
-        error: 'Missing API credentials'
-      };
+      throw new Error('Missing API credentials');
     }
 
     try {
-      console.log('Testing connection to ElevenLabs Agent:', elevenLabsAgentId);
+      console.log('Requesting signed URL for agent:', elevenLabsAgentId);
       
-      const response = await fetch(`https://api.elevenlabs.io/v1/agents/${elevenLabsAgentId}`, {
+      const response = await fetch(`https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${elevenLabsAgentId}`, {
         method: 'GET',
         headers: {
           'xi-api-key': elevenLabsApiKey,
@@ -106,18 +111,15 @@ const VoiceAssistant = () => {
         },
       });
 
-      console.log('ElevenLabs Agent API Response:', response.status, response.statusText);
+      console.log('Signed URL API Response:', response.status, response.statusText);
 
       if (response.ok) {
-        const agentData = await response.json();
-        console.log('Agent found:', agentData.name || 'Unnamed Agent');
-        return {
-          success: true,
-          agent: agentData
-        };
+        const data = await response.json();
+        console.log('Signed URL received:', data.signed_url ? 'Success' : 'Failed');
+        return data.signed_url;
       } else {
         const errorText = await response.text();
-        console.error('Agent API Error:', response.status, errorText);
+        console.error('Signed URL API Error:', response.status, errorText);
         
         let errorMessage = '';
         switch (response.status) {
@@ -134,47 +136,144 @@ const VoiceAssistant = () => {
             errorMessage = `API error: ${response.status} - ${errorText}`;
         }
         
-        return {
-          success: false,
-          error: errorMessage
-        };
+        throw new Error(errorMessage);
       }
     } catch (error) {
-      console.error('Network error testing agent connection:', error);
-      return {
-        success: false,
-        error: 'Network error. Please check your internet connection.'
-      };
+      console.error('Error getting signed URL:', error);
+      throw error;
     }
   };
 
-  // Enhanced ElevenLabs Agent API integration with better error handling
+  // Connect to ElevenLabs Agent using WebSocket with signed URL
   const connectToElevenLabsAgent = async () => {
     setIsConnecting(true);
     setConnectionStatus('connecting');
 
-    const testResult = await testAgentConnection();
-    
-    if (testResult.success) {
-      setConnectionStatus('connected');
-      setErrorDetails('');
-      setShowConfigHelp(false);
-      toast({
-        title: "Connected to TARA",
-        description: "Successfully connected to ElevenLabs Agent. TARA is ready to help!",
-      });
-      setIsConnecting(false);
+    try {
+      // Get signed URL
+      const url = await getSignedUrl();
+      setSignedUrl(url);
+
+      // Create WebSocket connection
+      const ws = new WebSocket(url);
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected to ElevenLabs Agent');
+        setConnectionStatus('connected');
+        setErrorDetails('');
+        setShowConfigHelp(false);
+        setWebsocket(ws);
+        setIsConnecting(false);
+        
+        toast({
+          title: "Connected to TARA",
+          description: "Successfully connected to ElevenLabs Agent. TARA is ready to help!",
+        });
+
+        // Send initial message to start conversation
+        const initialMessage = {
+          type: 'conversation.item.create',
+          item: {
+            type: 'message',
+            role: 'user',
+            content: [{
+              type: 'input_text',
+              text: "Hello, I'm a student looking for mental health support. Can you introduce yourself?"
+            }]
+          }
+        };
+        
+        ws.send(JSON.stringify(initialMessage));
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('WebSocket message received:', data);
+          
+          // Handle different message types from ElevenLabs
+          switch (data.type) {
+            case 'conversation.item.created':
+              if (data.item.role === 'assistant' && data.item.content) {
+                const textContent = data.item.content.find((c: any) => c.type === 'text');
+                if (textContent) {
+                  setConversation(prev => [...prev, {
+                    speaker: 'tara',
+                    message: textContent.text,
+                    timestamp: new Date()
+                  }]);
+                }
+              }
+              break;
+              
+            case 'response.audio.delta':
+              // Handle audio streaming if needed
+              if (data.delta) {
+                // Process audio data
+                console.log('Audio delta received');
+              }
+              break;
+              
+            case 'response.done':
+              console.log('Response completed');
+              setIsSpeaking(false);
+              break;
+              
+            case 'error':
+              console.error('WebSocket error:', data);
+              toast({
+                title: "Connection Error",
+                description: data.error?.message || "An error occurred during the conversation.",
+                variant: "destructive",
+              });
+              break;
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setConnectionStatus('error');
+        setErrorDetails('WebSocket connection failed');
+        setIsConnecting(false);
+        
+        toast({
+          title: "Connection Failed",
+          description: "Failed to establish WebSocket connection with TARA.",
+          variant: "destructive",
+        });
+      };
+
+      ws.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
+        setConnectionStatus('disconnected');
+        setWebsocket(null);
+        
+        if (event.code !== 1000) { // Not a normal closure
+          toast({
+            title: "Connection Lost",
+            description: "Connection to TARA was lost. Please try reconnecting.",
+            variant: "destructive",
+          });
+        }
+      };
+
       return true;
-    } else {
+    } catch (error: any) {
+      console.error('Failed to connect to ElevenLabs Agent:', error);
       setConnectionStatus('error');
-      setErrorDetails(testResult.error || 'Unknown error');
+      setErrorDetails(error.message || 'Unknown error');
       setShowConfigHelp(true);
+      setIsConnecting(false);
+      
       toast({
         title: "Connection Failed",
-        description: testResult.error,
+        description: error.message,
         variant: "destructive",
       });
-      setIsConnecting(false);
+      
       return false;
     }
   };
@@ -204,19 +303,11 @@ const VoiceAssistant = () => {
         status: 'active',
         topic: 'Student wellness check-in with ElevenLabs TARA',
         agentId: elevenLabsAgentId,
+        connectionType: 'websocket_signed_url'
       });
     } catch (error) {
       console.error('Error starting session:', error);
     }
-
-    // Get initial greeting from ElevenLabs Agent
-    setTimeout(async () => {
-      const greeting = await getAgentResponse("Hello, I'm a student looking for mental health support. Can you introduce yourself?");
-      const welcomeMessage = greeting.text || "Hello! I'm TARA, your AI mental health companion. I'm here to listen and support you through your academic journey. How are you feeling today?";
-      
-      setConversation([{ speaker: 'tara', message: welcomeMessage, timestamp: new Date() }]);
-      speakText(welcomeMessage);
-    }, 1000);
   };
 
   const endCall = async () => {
@@ -224,6 +315,13 @@ const VoiceAssistant = () => {
     setIsSpeaking(false);
     setIsMuted(false);
     setIsListening(false);
+    
+    // Close WebSocket connection
+    if (websocket) {
+      websocket.close(1000, 'Session ended by user');
+      setWebsocket(null);
+    }
+    
     setConnectionStatus('disconnected');
     
     // Save session end to Firebase
@@ -235,6 +333,7 @@ const VoiceAssistant = () => {
           topic: conversation.length > 0 ? 'Student wellness conversation with ElevenLabs TARA' : 'Brief check-in',
           conversationLength: conversation.length,
           agentId: elevenLabsAgentId,
+          connectionType: 'websocket_signed_url'
         });
         
         toast({
@@ -247,107 +346,33 @@ const VoiceAssistant = () => {
     }
   };
 
-  // Enhanced text-to-speech with ElevenLabs
-  const speakText = async (text: string) => {
-    if (!elevenLabsApiKey || !elevenLabsVoiceId) {
-      console.warn('ElevenLabs TTS not configured, using fallback');
-      setIsSpeaking(true);
-      setTimeout(() => setIsSpeaking(false), 3000);
+  // Send message through WebSocket
+  const sendMessage = (message: string) => {
+    if (!websocket || websocket.readyState !== WebSocket.OPEN) {
+      console.error('WebSocket not connected');
       return;
     }
 
-    try {
-      setIsSpeaking(true);
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elevenLabsVoiceId}`, {
-        method: 'POST',
-        headers: {
-          'xi-api-key': elevenLabsApiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text,
-          voice_settings: { 
-            stability: 0.75, 
-            similarity_boost: 0.85,
-            style: 0.3,
-            use_speaker_boost: true
-          },
-          model_id: "eleven_multilingual_v2"
-        }),
-      });
-
-      if (response.ok) {
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        
-        audio.onended = () => {
-          setIsSpeaking(false);
-          URL.revokeObjectURL(audioUrl);
-        };
-        
-        audio.onerror = () => {
-          setIsSpeaking(false);
-          URL.revokeObjectURL(audioUrl);
-          console.error('Audio playback failed');
-        };
-        
-        await audio.play();
-      } else {
-        throw new Error(`TTS API responded with status: ${response.status}`);
+    const messageData = {
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [{
+          type: 'input_text',
+          text: message
+        }]
       }
-    } catch (error) {
-      console.error('Error with text-to-speech:', error);
-      setIsSpeaking(false);
-      toast({
-        title: "Audio Error",
-        description: "Unable to play TARA's voice. The text response is still available.",
-        variant: "destructive",
-      });
-    }
-  };
+    };
 
-  // Enhanced ElevenLabs Agent API integration
-  const getAgentResponse = async (userMessage: string) => {
-    if (!elevenLabsApiKey || !elevenLabsAgentId) {
-      console.warn('ElevenLabs Agent API not configured');
-      return { 
-        text: "I'm here to listen and support you. Can you tell me more about how you're feeling? (Note: ElevenLabs Agent is not configured)" 
-      };
-    }
-
-    try {
-      console.log('Sending message to ElevenLabs Agent:', userMessage);
-      
-      const response = await fetch(`https://api.elevenlabs.io/v1/agents/${elevenLabsAgentId}/chat`, {
-        method: 'POST',
-        headers: {
-          'xi-api-key': elevenLabsApiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: userMessage,
-          session_id: `session_${user?.uid}_${Date.now()}`,
-        }),
-      });
-
-      console.log('ElevenLabs Agent Chat Response:', response.status, response.statusText);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('ElevenLabs Agent Response:', data);
-        return data;
-      } else {
-        const errorText = await response.text();
-        console.error('ElevenLabs Agent API Error:', response.status, errorText);
-        throw new Error(`Agent API responded with status: ${response.status}`);
-      }
-    } catch (error) {
-      console.error('Error with ElevenLabs Agent API:', error);
-      return { 
-        text: "I'm here to listen and support you. Can you tell me more about how you're feeling? I'm experiencing some technical difficulties, but I'm still here for you." 
-      };
-    }
+    websocket.send(JSON.stringify(messageData));
+    
+    // Add user message to conversation
+    setConversation(prev => [...prev, {
+      speaker: 'user',
+      message: message,
+      timestamp: new Date()
+    }]);
   };
 
   // Enhanced speech recognition
@@ -380,24 +405,8 @@ const VoiceAssistant = () => {
       
       console.log('Speech recognition result:', transcript, 'Confidence:', confidence);
       
-      setTranscript(transcript);
-      setConversation(prev => [...prev, { 
-        speaker: 'user', 
-        message: transcript, 
-        timestamp: new Date(),
-        confidence: confidence
-      }]);
-      
-      // Get response from ElevenLabs Agent
-      const agentResponse = await getAgentResponse(transcript);
-      setConversation(prev => [...prev, { 
-        speaker: 'tara', 
-        message: agentResponse.text, 
-        timestamp: new Date() 
-      }]);
-      
-      // Speak the response
-      speakText(agentResponse.text);
+      // Send message through WebSocket
+      sendMessage(transcript);
     };
 
     recognition.onerror = (event: any) => {
@@ -444,6 +453,8 @@ const VoiceAssistant = () => {
       sessionDuration={sessionDuration}
       formatDuration={formatDuration}
       connectionStatus={connectionStatus}
+      websocket={websocket}
+      sendMessage={sendMessage}
     />;
   }
 
@@ -474,7 +485,6 @@ const VoiceAssistant = () => {
                   <div className="text-sm text-amber-700 space-y-1">
                     <p><strong>API Key:</strong> {elevenLabsApiKey ? '✅ Configured' : '❌ Missing'}</p>
                     <p><strong>Agent ID:</strong> {elevenLabsAgentId ? '✅ Configured' : '❌ Missing'}</p>
-                    <p><strong>Voice ID:</strong> {elevenLabsVoiceId ? '✅ Configured' : '❌ Missing'}</p>
                   </div>
                   {errorDetails && (
                     <div className="mt-3 p-3 bg-red-100 border border-red-200 rounded text-red-700 text-sm">
@@ -493,8 +503,7 @@ const VoiceAssistant = () => {
                     <li>Add these to your environment variables:
                       <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono">
                         VITE_ELEVENLABS_API_KEY=your_api_key<br/>
-                        VITE_ELEVENLABS_AGENT_ID=your_agent_id<br/>
-                        VITE_ELEVENLABS_VOICE_ID=your_voice_id
+                        VITE_ELEVENLABS_AGENT_ID=your_agent_id
                       </div>
                     </li>
                   </ol>
@@ -555,8 +564,8 @@ const VoiceAssistant = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div className="bg-gradient-to-r from-green-100 to-teal-100 p-4 rounded-2xl">
               <MessageCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-              <h3 className="font-semibold text-gray-800 mb-1">ElevenLabs Powered</h3>
-              <p className="text-sm text-gray-600">Advanced AI conversation with natural voice synthesis</p>
+              <h3 className="font-semibold text-gray-800 mb-1">Secure WebSocket</h3>
+              <p className="text-sm text-gray-600">Authenticated connection using signed URLs for security</p>
             </div>
             <div className="bg-gradient-to-r from-teal-100 to-blue-100 p-4 rounded-2xl">
               <Phone className="w-8 h-8 text-teal-600 mx-auto mb-2" />
@@ -626,9 +635,9 @@ const VoiceAssistant = () => {
                     <div className="text-sm text-gray-600">
                       {session.startTime ? new Date(session.startTime.toDate()).toLocaleString() : 'Recent'} 
                       {session.duration && ` • ${session.duration}`}
-                      {session.agentId && (
+                      {session.connectionType && (
                         <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                          ElevenLabs
+                          Secure WebSocket
                         </span>
                       )}
                     </div>
@@ -682,7 +691,9 @@ const CallInterface = ({
   conversation,
   sessionDuration,
   formatDuration,
-  connectionStatus
+  connectionStatus,
+  websocket,
+  sendMessage
 }: {
   isMuted: boolean;
   setIsMuted: (muted: boolean) => void;
@@ -694,7 +705,25 @@ const CallInterface = ({
   sessionDuration: number;
   formatDuration: (seconds: number) => string;
   connectionStatus: string;
+  websocket: WebSocket | null;
+  sendMessage: (message: string) => void;
 }) => {
+  const [textInput, setTextInput] = useState('');
+
+  const handleSendText = () => {
+    if (textInput.trim() && websocket) {
+      sendMessage(textInput.trim());
+      setTextInput('');
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendText();
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 via-teal-900 to-blue-900 p-4 relative overflow-hidden">
       {/* Background blur effects */}
@@ -762,7 +791,7 @@ const CallInterface = ({
           </p>
           <div className="bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 inline-block">
             <p className="text-white/60 text-sm">
-              ElevenLabs Session • {formatDuration(sessionDuration)}
+              Secure WebSocket • {formatDuration(sessionDuration)}
             </p>
           </div>
         </div>
@@ -777,14 +806,30 @@ const CallInterface = ({
               conversation.slice(-3).map((msg, index) => (
                 <div key={index} className={`${msg.speaker === 'tara' ? 'text-green-300' : 'text-blue-300'}`}>
                   <strong>{msg.speaker === 'tara' ? 'TARA' : 'You'}:</strong> {msg.message}
-                  {msg.confidence && (
-                    <span className="text-white/40 text-xs ml-2">
-                      ({Math.round(msg.confidence * 100)}% confidence)
-                    </span>
-                  )}
                 </div>
               ))
             )}
+          </div>
+        </div>
+
+        {/* Text Input for typing messages */}
+        <div className="bg-black/20 backdrop-blur-sm rounded-2xl p-4">
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type your message..."
+              className="flex-1 bg-white/10 text-white placeholder-white/60 border border-white/20 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-white/30"
+            />
+            <button
+              onClick={handleSendText}
+              disabled={!textInput.trim() || !websocket}
+              className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white px-4 py-2 rounded-xl transition-colors"
+            >
+              Send
+            </button>
           </div>
         </div>
 
@@ -826,9 +871,9 @@ const CallInterface = ({
 
         {/* Instructions */}
         <div className="text-white/60 text-sm space-y-1">
-          <p>Tap the blue button to speak</p>
-          <p>TARA will respond with voice and text</p>
-          <p className="text-xs">Powered by ElevenLabs AI</p>
+          <p>Tap the blue button to speak or type your message</p>
+          <p>TARA will respond through the secure WebSocket connection</p>
+          <p className="text-xs">Powered by ElevenLabs Signed URL Authentication</p>
         </div>
       </div>
     </div>
