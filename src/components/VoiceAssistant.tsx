@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Phone, PhoneCall, Mic, MicOff, Volume2, VolumeX, MessageCircle, Calendar, ArrowLeft } from 'lucide-react';
+import { Phone, PhoneCall, Mic, MicOff, Volume2, VolumeX, MessageCircle, Calendar, ArrowLeft, Loader2 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
+// ElevenLabs configuration from environment variables
 const elevenLabsApiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const elevenLabsVoiceId = import.meta.env.VITE_ELEVENLABS_VOICE_ID;
-const elevenLabsAgentApiKey = import.meta.env.VITE_ELEVENLABS_AGENT_API_KEY;
 const elevenLabsAgentId = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 
 const VoiceAssistant = () => {
@@ -16,12 +16,25 @@ const VoiceAssistant = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [conversation, setConversation] = useState<any[]>([]);
   const [sessionDuration, setSessionDuration] = useState(0);
   const [recentSessions, setRecentSessions] = useState<any[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const { toast } = useToast();
   const user = auth.currentUser;
+
+  // Check ElevenLabs configuration on component mount
+  useEffect(() => {
+    if (!elevenLabsApiKey || !elevenLabsAgentId) {
+      console.warn('ElevenLabs configuration missing:', {
+        hasApiKey: !!elevenLabsApiKey,
+        hasAgentId: !!elevenLabsAgentId
+      });
+      setConnectionStatus('error');
+    }
+  }, []);
 
   // Fetch recent sessions
   useEffect(() => {
@@ -64,6 +77,54 @@ const VoiceAssistant = () => {
     window.open('https://calendly.com/goodmind/appointment1?month=2025-07', '_blank');
   };
 
+  // Enhanced ElevenLabs Agent API integration
+  const connectToElevenLabsAgent = async () => {
+    if (!elevenLabsApiKey || !elevenLabsAgentId) {
+      toast({
+        title: "Configuration Error",
+        description: "ElevenLabs API is not properly configured. Please check your settings.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    setIsConnecting(true);
+    setConnectionStatus('connecting');
+
+    try {
+      // Test connection to ElevenLabs Agent API
+      const response = await fetch(`https://api.elevenlabs.io/v1/agents/${elevenLabsAgentId}`, {
+        method: 'GET',
+        headers: {
+          'xi-api-key': elevenLabsApiKey,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        setConnectionStatus('connected');
+        toast({
+          title: "Connected to TARA",
+          description: "Successfully connected to ElevenLabs Agent. TARA is ready to help!",
+        });
+        return true;
+      } else {
+        throw new Error(`API responded with status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to connect to ElevenLabs Agent:', error);
+      setConnectionStatus('error');
+      toast({
+        title: "Connection Failed",
+        description: "Unable to connect to TARA. Please check your internet connection and try again.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
   const startCall = async () => {
     if (!user) {
       toast({
@@ -74,6 +135,10 @@ const VoiceAssistant = () => {
       return;
     }
 
+    // Connect to ElevenLabs Agent first
+    const connected = await connectToElevenLabsAgent();
+    if (!connected) return;
+
     setIsCallActive(true);
     setSessionDuration(0);
     setConversation([]);
@@ -83,17 +148,20 @@ const VoiceAssistant = () => {
       await addDoc(collection(db, `users/${user.uid}/taraSessions`), {
         startTime: serverTimestamp(),
         status: 'active',
-        topic: 'Student wellness check-in',
+        topic: 'Student wellness check-in with ElevenLabs TARA',
+        agentId: elevenLabsAgentId,
       });
     } catch (error) {
       console.error('Error starting session:', error);
     }
 
-    // Simulate TARA's greeting
-    setTimeout(() => {
-      const greeting = "Hello! I'm TARA, your mental wellness companion. I'm here to listen and support you through your academic journey. How are you feeling today?";
-      setConversation([{ speaker: 'tara', message: greeting, timestamp: new Date() }]);
-      speakText(greeting);
+    // Get initial greeting from ElevenLabs Agent
+    setTimeout(async () => {
+      const greeting = await getAgentResponse("Hello, I'm a student looking for mental health support. Can you introduce yourself?");
+      const welcomeMessage = greeting.text || "Hello! I'm TARA, your AI mental health companion. I'm here to listen and support you through your academic journey. How are you feeling today?";
+      
+      setConversation([{ speaker: 'tara', message: welcomeMessage, timestamp: new Date() }]);
+      speakText(welcomeMessage);
     }, 1000);
   };
 
@@ -102,6 +170,7 @@ const VoiceAssistant = () => {
     setIsSpeaking(false);
     setIsMuted(false);
     setIsListening(false);
+    setConnectionStatus('disconnected');
     
     // Save session end to Firebase
     if (user && sessionDuration > 0) {
@@ -109,8 +178,9 @@ const VoiceAssistant = () => {
         await addDoc(collection(db, `users/${user.uid}/taraSessions`), {
           endTime: serverTimestamp(),
           duration: formatDuration(sessionDuration),
-          topic: conversation.length > 0 ? 'Student wellness conversation' : 'Brief check-in',
+          topic: conversation.length > 0 ? 'Student wellness conversation with ElevenLabs TARA' : 'Brief check-in',
           conversationLength: conversation.length,
+          agentId: elevenLabsAgentId,
         });
         
         toast({
@@ -123,9 +193,10 @@ const VoiceAssistant = () => {
     }
   };
 
+  // Enhanced text-to-speech with ElevenLabs
   const speakText = async (text: string) => {
     if (!elevenLabsApiKey || !elevenLabsVoiceId) {
-      console.warn('ElevenLabs API not configured');
+      console.warn('ElevenLabs TTS not configured, using fallback');
       setIsSpeaking(true);
       setTimeout(() => setIsSpeaking(false), 3000);
       return;
@@ -142,11 +213,12 @@ const VoiceAssistant = () => {
         body: JSON.stringify({
           text,
           voice_settings: { 
-            stability: 0.7, 
-            similarity_boost: 0.8,
-            style: 0.2,
+            stability: 0.75, 
+            similarity_boost: 0.85,
+            style: 0.3,
             use_speaker_boost: true
           },
+          model_id: "eleven_multilingual_v2"
         }),
       });
 
@@ -163,56 +235,69 @@ const VoiceAssistant = () => {
         audio.onerror = () => {
           setIsSpeaking(false);
           URL.revokeObjectURL(audioUrl);
+          console.error('Audio playback failed');
         };
         
         await audio.play();
       } else {
-        throw new Error('Failed to generate speech');
+        throw new Error(`TTS API responded with status: ${response.status}`);
       }
     } catch (error) {
       console.error('Error with text-to-speech:', error);
       setIsSpeaking(false);
       toast({
         title: "Audio Error",
-        description: "Unable to play TARA's voice. Check your connection.",
+        description: "Unable to play TARA's voice. The text response is still available.",
         variant: "destructive",
       });
     }
   };
 
+  // Enhanced ElevenLabs Agent API integration
   const getAgentResponse = async (userMessage: string) => {
-    if (!elevenLabsAgentApiKey || !elevenLabsAgentId) {
+    if (!elevenLabsApiKey || !elevenLabsAgentId) {
       console.warn('ElevenLabs Agent API not configured');
-      return { text: "I'm here to listen and support you. Can you tell me more about how you're feeling?" };
+      return { 
+        text: "I'm here to listen and support you. Can you tell me more about how you're feeling? (Note: ElevenLabs Agent is not configured)" 
+      };
     }
+
     try {
       const response = await fetch(`https://api.elevenlabs.io/v1/agents/${elevenLabsAgentId}/chat`, {
         method: 'POST',
         headers: {
-          'xi-api-key': elevenLabsAgentApiKey,
+          'xi-api-key': elevenLabsApiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           text: userMessage,
+          session_id: `session_${user?.uid}_${Date.now()}`,
         }),
       });
+
       if (response.ok) {
         const data = await response.json();
+        console.log('ElevenLabs Agent Response:', data);
         return data;
       } else {
-        throw new Error('Failed to get agent response');
+        const errorText = await response.text();
+        console.error('ElevenLabs Agent API Error:', response.status, errorText);
+        throw new Error(`Agent API responded with status: ${response.status}`);
       }
     } catch (error) {
-      console.error('Error with agent API:', error);
-      return { text: "I'm here to listen and support you. Can you tell me more about how you're feeling?" };
+      console.error('Error with ElevenLabs Agent API:', error);
+      return { 
+        text: "I'm here to listen and support you. Can you tell me more about how you're feeling? I'm experiencing some technical difficulties, but I'm still here for you." 
+      };
     }
   };
 
+  // Enhanced speech recognition
   const startListening = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       toast({
         title: "Speech Recognition Not Supported",
-        description: "Your browser doesn't support speech recognition.",
+        description: "Your browser doesn't support speech recognition. You can still type your messages.",
         variant: "destructive",
       });
       return;
@@ -224,36 +309,66 @@ const VoiceAssistant = () => {
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
       setIsListening(true);
+      console.log('Speech recognition started');
     };
 
     recognition.onresult = async (event: any) => {
       const transcript = event.results[0][0].transcript;
+      const confidence = event.results[0][0].confidence;
+      
+      console.log('Speech recognition result:', transcript, 'Confidence:', confidence);
+      
       setTranscript(transcript);
       setConversation(prev => [...prev, { 
         speaker: 'user', 
         message: transcript, 
-        timestamp: new Date() 
+        timestamp: new Date(),
+        confidence: confidence
       }]);
       
+      // Get response from ElevenLabs Agent
       const agentResponse = await getAgentResponse(transcript);
       setConversation(prev => [...prev, { 
         speaker: 'tara', 
         message: agentResponse.text, 
         timestamp: new Date() 
       }]);
+      
+      // Speak the response
       speakText(agentResponse.text);
     };
 
     recognition.onerror = (event: any) => {
       console.error('Speech recognition error:', event.error);
       setIsListening(false);
+      
+      let errorMessage = "Speech recognition failed. Please try again.";
+      switch (event.error) {
+        case 'no-speech':
+          errorMessage = "No speech detected. Please try speaking again.";
+          break;
+        case 'audio-capture':
+          errorMessage = "Microphone access denied. Please check your permissions.";
+          break;
+        case 'not-allowed':
+          errorMessage = "Microphone permission denied. Please allow microphone access.";
+          break;
+      }
+      
+      toast({
+        title: "Speech Recognition Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
     };
 
     recognition.onend = () => {
       setIsListening(false);
+      console.log('Speech recognition ended');
     };
 
     recognition.start();
@@ -270,6 +385,7 @@ const VoiceAssistant = () => {
       conversation={conversation}
       sessionDuration={sessionDuration}
       formatDuration={formatDuration}
+      connectionStatus={connectionStatus}
     />;
   }
 
@@ -278,10 +394,25 @@ const VoiceAssistant = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Call to TARA</h1>
         <p className="text-gray-600">
-          Connect with TARA, your AI-powered mental health companion designed specifically for students. 
+          Connect with TARA, your AI-powered mental health companion powered by ElevenLabs. 
           She's here to listen, support, and guide you through your academic and personal challenges.
         </p>
       </div>
+
+      {/* Connection Status Indicator */}
+      {connectionStatus === 'error' && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2 text-red-700">
+              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              <span className="font-medium">ElevenLabs Configuration Required</span>
+            </div>
+            <p className="text-red-600 text-sm mt-1">
+              Please ensure your ElevenLabs API key and Agent ID are properly configured.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* TARA Introduction */}
       <Card className="card-modern">
@@ -291,11 +422,16 @@ const VoiceAssistant = () => {
             <div className="relative w-28 h-28 bg-white rounded-full flex items-center justify-center">
               <span className="text-4xl">🌸</span>
             </div>
+            {connectionStatus === 'connected' && (
+              <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs">✓</span>
+              </div>
+            )}
           </div>
           
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Meet TARA</h2>
           <p className="text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-            TARA is your compassionate AI mental health specialist, available 24/7 to provide 
+            TARA is your compassionate AI mental health specialist powered by ElevenLabs, available 24/7 to provide 
             support, guidance, and a listening ear specifically for student challenges. She understands 
             academic stress, social pressures, and the unique mental health needs of students.
           </p>
@@ -303,8 +439,8 @@ const VoiceAssistant = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div className="bg-gradient-to-r from-green-100 to-teal-100 p-4 rounded-2xl">
               <MessageCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-              <h3 className="font-semibold text-gray-800 mb-1">Student-Focused Support</h3>
-              <p className="text-sm text-gray-600">Specialized in academic stress and student mental health</p>
+              <h3 className="font-semibold text-gray-800 mb-1">ElevenLabs Powered</h3>
+              <p className="text-sm text-gray-600">Advanced AI conversation with natural voice synthesis</p>
             </div>
             <div className="bg-gradient-to-r from-teal-100 to-blue-100 p-4 rounded-2xl">
               <Phone className="w-8 h-8 text-teal-600 mx-auto mb-2" />
@@ -321,10 +457,20 @@ const VoiceAssistant = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               onClick={startCall}
+              disabled={isConnecting || connectionStatus === 'error'}
               className="btn-goodmind text-lg px-12 py-6 rounded-2xl transform hover:scale-105 transition-all duration-300 shadow-xl"
             >
-              <Phone className="w-6 h-6 mr-3" />
-              Start Session with TARA
+              {isConnecting ? (
+                <>
+                  <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                  Connecting to TARA...
+                </>
+              ) : (
+                <>
+                  <Phone className="w-6 h-6 mr-3" />
+                  Start Session with TARA
+                </>
+              )}
             </Button>
             
             <Button 
@@ -359,6 +505,11 @@ const VoiceAssistant = () => {
                     <div className="text-sm text-gray-600">
                       {session.startTime ? new Date(session.startTime.toDate()).toLocaleString() : 'Recent'} 
                       {session.duration && ` • ${session.duration}`}
+                      {session.agentId && (
+                        <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                          ElevenLabs
+                        </span>
+                      )}
                     </div>
                   </div>
                   <Button variant="outline" size="sm" className="rounded-xl">View Notes</Button>
@@ -399,7 +550,7 @@ const VoiceAssistant = () => {
   );
 };
 
-// iOS-style Call Interface Component
+// Enhanced Call Interface Component
 const CallInterface = ({ 
   isMuted, 
   setIsMuted, 
@@ -409,7 +560,8 @@ const CallInterface = ({
   onStartListening,
   conversation,
   sessionDuration,
-  formatDuration
+  formatDuration,
+  connectionStatus
 }: {
   isMuted: boolean;
   setIsMuted: (muted: boolean) => void;
@@ -420,6 +572,7 @@ const CallInterface = ({
   conversation: any[];
   sessionDuration: number;
   formatDuration: (seconds: number) => string;
+  connectionStatus: string;
 }) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 via-teal-900 to-blue-900 p-4 relative overflow-hidden">
@@ -444,6 +597,18 @@ const CallInterface = ({
             
             <div className="relative w-44 h-44 bg-white rounded-full flex items-center justify-center">
               <span className="text-6xl">🌸</span>
+            </div>
+
+            {/* Connection status indicator */}
+            <div className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center ${
+              connectionStatus === 'connected' ? 'bg-green-500' : 
+              connectionStatus === 'connecting' ? 'bg-yellow-500 animate-pulse' : 
+              'bg-red-500'
+            }`}>
+              <span className="text-white text-xs">
+                {connectionStatus === 'connected' ? '✓' : 
+                 connectionStatus === 'connecting' ? '...' : '!'}
+              </span>
             </div>
           </div>
           
@@ -475,7 +640,9 @@ const CallInterface = ({
             {isSpeaking ? 'Speaking...' : isListening ? 'Listening...' : 'Ready to listen...'}
           </p>
           <div className="bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 inline-block">
-            <p className="text-white/60 text-sm">Session • {formatDuration(sessionDuration)}</p>
+            <p className="text-white/60 text-sm">
+              ElevenLabs Session • {formatDuration(sessionDuration)}
+            </p>
           </div>
         </div>
 
@@ -489,6 +656,11 @@ const CallInterface = ({
               conversation.slice(-3).map((msg, index) => (
                 <div key={index} className={`${msg.speaker === 'tara' ? 'text-green-300' : 'text-blue-300'}`}>
                   <strong>{msg.speaker === 'tara' ? 'TARA' : 'You'}:</strong> {msg.message}
+                  {msg.confidence && (
+                    <span className="text-white/40 text-xs ml-2">
+                      ({Math.round(msg.confidence * 100)}% confidence)
+                    </span>
+                  )}
                 </div>
               ))
             )}
@@ -535,6 +707,7 @@ const CallInterface = ({
         <div className="text-white/60 text-sm space-y-1">
           <p>Tap the blue button to speak</p>
           <p>TARA will respond with voice and text</p>
+          <p className="text-xs">Powered by ElevenLabs AI</p>
         </div>
       </div>
     </div>
