@@ -37,52 +37,42 @@ const Landing = ({ onGetStarted }: LandingProps) => {
       {/* Exact Background Gradient from Reference */}
       <div className="absolute inset-0 bg-gradient-to-br from-green-100 via-green-50 to-green-200"></div>
       
-      {/* Header with Larger, More Visible Logos */}
-      <header className="w-full py-6 px-4 sm:px-6 lg:px-8 relative z-10">
+      {/* Header with Much Larger, More Visible Logos */}
+      <header className="w-full py-8 px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          {/* GoodMind Logo - Left - Larger and More Visible */}
+          {/* GoodMind Logo - Left - Much Larger and More Visible */}
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 relative">
+            <div className="w-24 h-24 relative">
               <img
                 src="/GoodMind_new_logo__25_-removebg-preview.png"
                 alt="GoodMind Logo"
-                className="w-full h-full object-contain drop-shadow-lg"
+                className="w-full h-full object-contain drop-shadow-2xl filter brightness-110 contrast-125"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   const fallback = document.createElement('div');
-                  fallback.className = 'w-16 h-16 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg';
-                  fallback.innerHTML = '<span class="text-white text-2xl">🧠</span>';
+                  fallback.className = 'w-24 h-24 bg-gradient-to-br from-green-500 to-teal-500 rounded-3xl flex items-center justify-center shadow-2xl';
+                  fallback.innerHTML = '<span class="text-white text-4xl">🧠</span>';
                   e.currentTarget.parentNode?.appendChild(fallback);
                 }}
               />
-            </div>
-            <div>
-              <span className="text-3xl font-bold text-gray-800">
-                goodmind
-              </span>
-              <span className="text-green-600 font-medium text-xl">.app</span>
             </div>
           </div>
 
-          {/* Springfield Logo - Right - Larger and More Visible */}
+          {/* Springfield Logo - Right - Much Larger and More Visible */}
           <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 relative">
+            <div className="w-24 h-24 relative">
               <img
                 src="/images-removebg-preview.png"
                 alt="Springfield Education Logo"
-                className="w-full h-full object-contain drop-shadow-lg"
+                className="w-full h-full object-contain drop-shadow-2xl filter brightness-110 contrast-125"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   const fallback = document.createElement('div');
-                  fallback.className = 'w-16 h-16 bg-gradient-to-br from-blue-500 to-green-500 rounded-2xl flex items-center justify-center shadow-lg';
-                  fallback.innerHTML = '<span class="text-white text-lg font-bold">SF</span>';
+                  fallback.className = 'w-24 h-24 bg-gradient-to-br from-blue-500 to-green-500 rounded-3xl flex items-center justify-center shadow-2xl';
+                  fallback.innerHTML = '<span class="text-white text-2xl font-bold">SF</span>';
                   e.currentTarget.parentNode?.appendChild(fallback);
                 }}
               />
-            </div>
-            <div className="hidden sm:block">
-              <span className="text-lg font-semibold text-gray-700">Springfield</span>
-              <p className="text-sm text-gray-500">Education</p>
             </div>
           </div>
         </div>
@@ -231,7 +221,7 @@ const Landing = ({ onGetStarted }: LandingProps) => {
       <footer className="py-8 px-4 sm:px-6 lg:px-8 bg-white/50 backdrop-blur-sm border-t border-white/20 relative z-10">
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center space-x-3 mb-4">
-            <div className="w-10 h-10">
+            <div className="w-12 h-12">
               <img
                 src="/GoodMind_new_logo__25_-removebg-preview.png"
                 alt="GoodMind Logo"
@@ -239,8 +229,8 @@ const Landing = ({ onGetStarted }: LandingProps) => {
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   const fallback = document.createElement('div');
-                  fallback.className = 'w-10 h-10 bg-gradient-to-br from-green-500 to-teal-500 rounded-lg flex items-center justify-center';
-                  fallback.innerHTML = '<span class="text-white text-sm">🧠</span>';
+                  fallback.className = 'w-12 h-12 bg-gradient-to-br from-green-500 to-teal-500 rounded-lg flex items-center justify-center';
+                  fallback.innerHTML = '<span class="text-white text-lg">🧠</span>';
                   e.currentTarget.parentNode?.appendChild(fallback);
                 }}
               />

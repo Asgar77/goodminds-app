@@ -132,50 +132,44 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </Button>
 
-      {/* Enhanced Sidebar with Larger Logos */}
+      {/* Enhanced Sidebar with Much Larger Logos */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-40 w-80 glass-modern border-r border-white/20
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 h-full flex flex-col">
-          {/* Header with Larger Logos and Book Appointment */}
+          {/* Header with Much Larger Logos */}
           <div className="flex items-center justify-between mb-8">
-            {/* GoodMind Logo - Larger */}
+            {/* GoodMind Logo - Much Larger */}
             <div className="flex items-center space-x-3">
-              <div className="w-14 h-14 relative">
+              <div className="w-20 h-20 relative">
                 <img
                   src="/GoodMind_new_logo__25_-removebg-preview.png"
                   alt="GoodMind Logo"
-                  className="w-full h-full object-contain animate-float-gentle drop-shadow-lg"
+                  className="w-full h-full object-contain animate-float-gentle drop-shadow-2xl filter brightness-110 contrast-125"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                     const fallback = document.createElement('div');
-                    fallback.className = 'w-14 h-14 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg';
-                    fallback.innerHTML = '<span class="text-white text-2xl">🧠</span>';
+                    fallback.className = 'w-20 h-20 bg-gradient-to-br from-green-500 to-teal-500 rounded-3xl flex items-center justify-center shadow-2xl';
+                    fallback.innerHTML = '<span class="text-white text-3xl">🧠</span>';
                     e.currentTarget.parentNode?.appendChild(fallback);
                   }}
                 />
               </div>
-              <div>
-                <span className="text-2xl font-bold text-gray-800">
-                  goodmind
-                </span>
-                <span className="text-green-600 font-medium text-lg">.app</span>
-              </div>
             </div>
             
-            {/* Springfield Logo - Larger */}
-            <div className="w-12 h-12 relative">
+            {/* Springfield Logo - Much Larger */}
+            <div className="w-18 h-18 relative">
               <img
                 src="/images-removebg-preview.png"
                 alt="Springfield Education Logo"
-                className="w-full h-full object-contain drop-shadow-lg"
+                className="w-full h-full object-contain drop-shadow-2xl filter brightness-110 contrast-125"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   const fallback = document.createElement('div');
-                  fallback.className = 'w-12 h-12 bg-gradient-to-br from-blue-500 to-green-500 rounded-2xl flex items-center justify-center shadow-lg';
-                  fallback.innerHTML = '<span class="text-white text-sm font-bold">SF</span>';
+                  fallback.className = 'w-18 h-18 bg-gradient-to-br from-blue-500 to-green-500 rounded-3xl flex items-center justify-center shadow-2xl';
+                  fallback.innerHTML = '<span class="text-white text-lg font-bold">SF</span>';
                   e.currentTarget.parentNode?.appendChild(fallback);
                 }}
               />
