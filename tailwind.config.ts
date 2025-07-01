@@ -62,7 +62,12 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				'brand-green': '#245A3A',
+				// GoodMind Brand Colors
+				'goodmind-green': '#22c55e',
+				'goodmind-teal': '#14b8a6',
+				'goodmind-sage': '#84cc16',
+				'goodmind-cream': '#fefce8',
+				'goodmind-dark': '#1f2937',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -91,9 +96,8 @@ export default {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out'
 			},
-			boxShadow: {
-				'green-100': '0 8px 32px 0 rgba(36, 90, 58, 0.08)',
-				'green-900': '0 8px 32px 0 rgba(36, 90, 58, 0.32)',
+			fontFamily: {
+				'sans': ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
 			},
 		}
 	},

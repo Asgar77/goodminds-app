@@ -163,7 +163,6 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
       });
       
       await signInWithRedirect(auth, provider);
-      // The page will redirect, so we don't need to handle the result here
     } catch (error: any) {
       console.error("Redirect sign-in error:", error);
       toast({
@@ -207,12 +206,22 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md glass border-0 shadow-2xl animate-scale-in">
+      <Card className="w-full max-w-md glass-modern border-0 shadow-2xl animate-scale-in-smooth">
         <CardHeader className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center">
-            <Brain className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 mx-auto bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center animate-float-gentle">
+            <img
+              src="/GoodMind new logo (13).png"
+              alt="GoodMind Logo"
+              className="w-10 h-10 object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const fallback = document.createElement('div');
+                fallback.innerHTML = '<span class="text-white text-xl">🧠</span>';
+                e.currentTarget.parentNode?.appendChild(fallback);
+              }}
+            />
           </div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+          <CardTitle className="text-2xl font-bold text-goodmind-gradient">
             {showForgotPassword ? 'Reset Password' : (isLogin ? 'Welcome Back' : 'Join GoodMind')}
           </CardTitle>
           <p className="text-gray-600 dark:text-gray-300">
@@ -230,10 +239,10 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
               <Button
                 onClick={handleGoogleSignIn}
                 disabled={loading}
-                className="w-full bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 flex items-center justify-center gap-3 py-6"
+                className="w-full bg-white text-gray-700 border-2 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 flex items-center justify-center gap-3 py-6 hover:scale-105"
               >
                 {loading ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div>
+                  <div className="loading-spinner h-5 w-5"></div>
                 ) : (
                   <>
                     <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -248,7 +257,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
               </Button>
 
               {showPopupBlockedHelp && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 space-y-3">
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 space-y-3">
                   <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
                     <AlertCircle className="w-4 h-4" />
                     <span className="font-medium text-sm">Pop-up Blocked</span>
@@ -289,7 +298,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 py-6 border-2 focus:border-purple-300 dark:focus:border-purple-600"
+                    className="pl-10 py-6 border-2 focus:border-green-300 dark:focus:border-green-600 rounded-2xl"
                     required
                   />
                 </div>
@@ -301,7 +310,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 py-6 border-2 focus:border-purple-300 dark:focus:border-purple-600"
+                    className="pl-10 pr-10 py-6 border-2 focus:border-green-300 dark:focus:border-green-600 rounded-2xl"
                     required
                   />
                   <button
@@ -321,7 +330,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
                       placeholder="Confirm your password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="pl-10 pr-10 py-6 border-2 focus:border-purple-300 dark:focus:border-purple-600"
+                      className="pl-10 pr-10 py-6 border-2 focus:border-green-300 dark:focus:border-green-600 rounded-2xl"
                       required
                     />
                   </div>
@@ -332,7 +341,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
                     <button
                       type="button"
                       onClick={() => setShowForgotPassword(true)}
-                      className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
+                      className="text-sm text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
                     >
                       Forgot password?
                     </button>
@@ -342,7 +351,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-6 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-300"
+                  className="w-full py-6 btn-goodmind"
                 >
                   {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
                 </Button>
@@ -352,7 +361,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
               <div className="text-center">
                 <button
                   onClick={() => setIsLogin(!isLogin)}
-                  className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium"
+                  className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium"
                 >
                   {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
                 </button>
@@ -368,7 +377,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 py-6 border-2 focus:border-purple-300 dark:focus:border-purple-600"
+                  className="pl-10 py-6 border-2 focus:border-green-300 dark:focus:border-green-600 rounded-2xl"
                   required
                 />
               </div>
@@ -376,7 +385,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
               <Button
                 onClick={handleForgotPassword}
                 disabled={loading}
-                className="w-full py-6 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                className="w-full py-6 btn-goodmind"
               >
                 {loading ? 'Sending...' : 'Send Reset Email'}
               </Button>
@@ -384,7 +393,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
               <div className="text-center">
                 <button
                   onClick={() => setShowForgotPassword(false)}
-                  className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium"
+                  className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium"
                 >
                   Back to Sign In
                 </button>
@@ -396,7 +405,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
           <Button
             variant="ghost"
             onClick={onClose}
-            className="w-full mt-4"
+            className="w-full mt-4 rounded-2xl"
           >
             Cancel
           </Button>

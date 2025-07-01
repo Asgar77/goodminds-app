@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom design system for GoodMind - Mental Wellness Platform */
+/* GoodMind - Modern Mental Wellness Platform */
 
 @layer base {
   :root {
@@ -15,7 +15,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 262 83% 58%;
+    --primary: 142 76% 36%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -24,7 +24,7 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 220 100% 69%;
+    --accent: 142 76% 36%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
@@ -32,38 +32,38 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 262 83% 58%;
+    --ring: 142 76% 36%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    /* Custom wellness colors */
-    --wellness-purple: 262 83% 58%;
-    --wellness-blue: 220 100% 69%;
-    --wellness-pink: 330 81% 60%;
-    --wellness-green: 142 76% 36%;
-    --wellness-warm: 39 77% 83%;
+    /* GoodMind Brand Colors */
+    --goodmind-green: 142 76% 36%;
+    --goodmind-teal: 174 72% 56%;
+    --goodmind-sage: 120 13% 60%;
+    --goodmind-cream: 45 29% 97%;
+    --goodmind-dark: 220 13% 18%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 220 13% 18%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 220 13% 18%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 220 13% 18%;
     --popover-foreground: 210 40% 98%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 220 13% 18%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-    --accent: 220 100% 69%;
+    --accent: 142 76% 36%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 262 83% 58%;
+    --ring: 142 76% 36%;
   }
 }
 
@@ -73,39 +73,40 @@
   }
 
   body {
-    @apply bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-foreground font-sans transition-colors duration-300;
+    @apply bg-gradient-to-br from-green-50 via-teal-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-foreground font-sans transition-colors duration-500;
     min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
-  /* Improved scrollbar styling */
+  /* Custom scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100 dark:bg-gray-800 rounded-lg;
+    @apply bg-transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-purple-300 dark:bg-purple-600 rounded-lg hover:bg-purple-400 dark:hover:bg-purple-500;
+    @apply bg-green-300/50 rounded-full hover:bg-green-400/70;
   }
 }
 
-/* Enhanced animations for wellness feel */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+/* Modern Animations */
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
 }
 
-@keyframes pulse-gentle {
+@keyframes pulse-soft {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.8; transform: scale(1.02); }
+  50% { opacity: 0.9; transform: scale(1.02); }
 }
 
-@keyframes slide-up {
+@keyframes slide-up-smooth {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(40px);
   }
   to {
     opacity: 1;
@@ -113,7 +114,7 @@
   }
 }
 
-@keyframes fade-in {
+@keyframes fade-in-smooth {
   from {
     opacity: 0;
   }
@@ -122,10 +123,10 @@
   }
 }
 
-@keyframes scale-in {
+@keyframes scale-in-smooth {
   from {
     opacity: 0;
-    transform: scale(0.9);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
@@ -133,93 +134,109 @@
   }
 }
 
-.animate-float {
-  animation: float 6s ease-in-out infinite;
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
-.animate-pulse-gentle {
-  animation: pulse-gentle 4s ease-in-out infinite;
+.animate-float-gentle {
+  animation: float-gentle 8s ease-in-out infinite;
 }
 
-.animate-slide-up {
-  animation: slide-up 0.8s ease-out;
+.animate-pulse-soft {
+  animation: pulse-soft 3s ease-in-out infinite;
 }
 
-.animate-fade-in {
-  animation: fade-in 0.6s ease-out;
+.animate-slide-up-smooth {
+  animation: slide-up-smooth 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.animate-scale-in {
-  animation: scale-in 0.5s ease-out;
+.animate-fade-in-smooth {
+  animation: fade-in-smooth 0.6s ease-out;
 }
 
-/* Enhanced glass morphism effect */
-.glass {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+.animate-scale-in-smooth {
+  animation: scale-in-smooth 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.dark .glass {
-  background: rgba(17, 25, 40, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.125);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 6s ease infinite;
 }
 
-/* Focus states for accessibility */
-.focus-visible\:ring-purple-500:focus-visible {
-  --tw-ring-color: rgb(168 85 247);
+/* Modern Glass Effect */
+.glass-modern {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-/* Custom button hover effects */
-.btn-gradient {
-  @apply bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 transform hover:scale-105 transition-all duration-300;
+.dark .glass-modern {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
-/* Loading spinner */
-.spinner {
-  @apply animate-spin rounded-full border-b-2 border-purple-600;
+/* Gradient Backgrounds */
+.bg-goodmind-gradient {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 25%, #d1fae5 50%, #a7f3d0 75%, #6ee7b7 100%);
 }
 
-/* Improved form inputs */
-.form-input {
-  @apply w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200;
+.bg-goodmind-gradient-soft {
+  background: linear-gradient(135deg, #fefefe 0%, #f8fafc 25%, #f1f5f9 50%, #e2e8f0 75%, #cbd5e1 100%);
 }
 
-/* Card hover effects */
-.card-hover {
-  @apply hover:shadow-xl hover:scale-105 transition-all duration-300;
+.bg-goodmind-hero {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 25%, #a7f3d0 50%, #6ee7b7 75%, #34d399 100%);
 }
 
-/* Text gradients */
-.text-gradient {
-  @apply bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent;
+/* Button Styles */
+.btn-goodmind {
+  @apply bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white font-medium px-8 py-4 rounded-2xl transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl;
 }
 
-/* Responsive text sizing */
+.btn-goodmind-outline {
+  @apply border-2 border-green-500 text-green-600 hover:bg-green-500 hover:text-white font-medium px-8 py-4 rounded-2xl transform hover:scale-105 transition-all duration-300;
+}
+
+/* Card Styles */
+.card-modern {
+  @apply bg-white/80 backdrop-blur-sm border border-white/20 rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300;
+}
+
+.dark .card-modern {
+  @apply bg-gray-800/80 border-gray-700/20;
+}
+
+/* Text Gradients */
+.text-goodmind-gradient {
+  @apply bg-gradient-to-r from-green-600 via-teal-600 to-green-700 bg-clip-text text-transparent;
+}
+
+/* Mobile-first responsive design */
 @media (max-width: 640px) {
-  .responsive-text {
-    font-size: clamp(1rem, 4vw, 1.5rem);
+  .mobile-padding {
+    @apply px-4 py-6;
   }
-}
-
-/* Dark mode improvements */
-.dark {
-  color-scheme: dark;
-}
-
-.dark img {
-  filter: brightness(0.9);
+  
+  .mobile-text {
+    font-size: clamp(1.5rem, 5vw, 2.5rem);
+  }
+  
+  .mobile-subtitle {
+    font-size: clamp(1rem, 3vw, 1.25rem);
+  }
 }
 
 /* Accessibility improvements */
 @media (prefers-reduced-motion: reduce) {
-  .animate-float,
-  .animate-pulse-gentle,
-  .animate-slide-up,
-  .animate-fade-in,
-  .animate-scale-in {
+  .animate-float-gentle,
+  .animate-pulse-soft,
+  .animate-slide-up-smooth,
+  .animate-fade-in-smooth,
+  .animate-scale-in-smooth,
+  .animate-gradient {
     animation: none;
   }
   
@@ -228,15 +245,12 @@
   }
 }
 
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .glass {
-    background: rgba(255, 255, 255, 0.9);
-    border: 2px solid rgba(0, 0, 0, 0.8);
-  }
-  
-  .dark .glass {
-    background: rgba(0, 0, 0, 0.9);
-    border: 2px solid rgba(255, 255, 255, 0.8);
-  }
+/* Focus states */
+.focus-goodmind:focus {
+  @apply outline-none ring-4 ring-green-500/20 ring-offset-2;
+}
+
+/* Loading states */
+.loading-spinner {
+  @apply animate-spin rounded-full border-4 border-green-200 border-t-green-600;
 }

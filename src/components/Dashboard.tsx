@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Heart, BarChart3, Phone, BookOpen, Settings, User, Menu, X, TrendingUp, Calendar, Award } from 'lucide-react';
+import { Brain, Heart, BarChart3, Phone, BookOpen, Settings, User, Menu, X, TrendingUp, Calendar, Award, Sparkles } from 'lucide-react';
 import MoodTracker from './MoodTracker';
 import AssessmentModule from './AssessmentModule';
 import VoiceAssistant from './VoiceAssistant';
@@ -79,13 +79,13 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
   }, [user]);
 
   const modules = [
-    { id: 'overview', name: 'Overview', icon: BarChart3 },
-    { id: 'mood', name: 'Mood Tracker', icon: Heart },
-    { id: 'assessments', name: 'Assessments', icon: Brain },
-    { id: 'tara', name: 'Call to Tara', icon: Phone },
-    { id: 'journal', name: 'Journal', icon: BookOpen },
-    { id: 'profile', name: 'Profile', icon: User },
-    { id: 'settings', name: 'Settings', icon: Settings },
+    { id: 'overview', name: 'Overview', icon: BarChart3, color: 'from-green-500 to-teal-500' },
+    { id: 'mood', name: 'Mood Tracker', icon: Heart, color: 'from-pink-500 to-rose-500' },
+    { id: 'assessments', name: 'Assessments', icon: Brain, color: 'from-blue-500 to-cyan-500' },
+    { id: 'tara', name: 'Call to TARA', icon: Phone, color: 'from-purple-500 to-indigo-500' },
+    { id: 'journal', name: 'Journal', icon: BookOpen, color: 'from-orange-500 to-amber-500' },
+    { id: 'profile', name: 'Profile', icon: User, color: 'from-gray-500 to-slate-500' },
+    { id: 'settings', name: 'Settings', icon: Settings, color: 'from-emerald-500 to-green-500' },
   ];
 
   const renderActiveModule = () => {
@@ -108,11 +108,11 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors">
+    <div className="min-h-screen flex bg-goodmind-gradient">
       {/* Mobile Menu Button */}
       <Button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 lg:hidden glass border-0 text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80"
+        className="fixed top-4 left-4 z-50 lg:hidden glass-modern border-0 text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-gray-800/80 rounded-2xl"
         size="icon"
       >
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -120,42 +120,44 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
 
       {/* Sidebar */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-40 w-64 glass border-r border-purple-100/50 dark:border-gray-700/50
+        fixed lg:static inset-y-0 left-0 z-40 w-72 glass-modern border-r border-white/20
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="p-6">
+        <div className="p-6 h-full flex flex-col">
+          {/* Logo */}
           <div className="flex items-center space-x-3 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center">
+            <div className="w-12 h-12 relative">
               <img
                 src="/GoodMind new logo (13).png"
                 alt="GoodMind Logo"
-                className="w-8 h-8 object-contain"
+                className="w-full h-full object-contain animate-float-gentle"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   const fallback = document.createElement('div');
-                  fallback.innerHTML = '🧠';
-                  fallback.className = 'text-white text-xl';
+                  fallback.className = 'w-12 h-12 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center';
+                  fallback.innerHTML = '<span class="text-white text-xl">🧠</span>';
                   e.currentTarget.parentNode?.appendChild(fallback);
                 }}
               />
             </div>
             <div>
-              <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                GoodMind
+              <span className="text-2xl font-bold text-goodmind-gradient">
+                goodmind
               </span>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Digital Sanctuary</p>
+              <span className="text-green-600 font-medium">.app</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Your Digital Sanctuary</p>
             </div>
           </div>
 
           {/* User Welcome */}
-          <div className="mb-6 p-4 glass rounded-xl border border-white/20">
+          <div className="mb-6 p-4 glass-modern rounded-2xl border border-white/20">
             <div className="flex items-center space-x-3 mb-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-teal-400 rounded-full flex items-center justify-center">
                 {user?.photoURL ? (
-                  <img src={user.photoURL} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
+                  <img src={user.photoURL} alt="Profile" className="w-12 h-12 rounded-full object-cover" />
                 ) : (
-                  <User className="w-5 h-5 text-white" />
+                  <User className="w-6 h-6 text-white" />
                 )}
               </div>
               <div>
@@ -167,13 +169,20 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-600 dark:text-gray-400">Wellness Score</span>
-              <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
+              <span className="text-sm font-bold text-green-600 dark:text-green-400">
                 {dashboardStats.wellnessScore}%
               </span>
             </div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
+              <div 
+                className="bg-gradient-to-r from-green-500 to-teal-500 h-2 rounded-full transition-all duration-500" 
+                style={{ width: `${dashboardStats.wellnessScore}%` }}
+              ></div>
+            </div>
           </div>
 
-          <nav className="space-y-2">
+          {/* Navigation */}
+          <nav className="space-y-2 flex-1">
             {modules.map((module) => (
               <button
                 key={module.id}
@@ -182,14 +191,20 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
                   setSidebarOpen(false);
                 }}
                 className={`
-                  w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200
+                  w-full flex items-center space-x-4 px-4 py-4 rounded-2xl transition-all duration-300 group
                   ${activeModule === module.id 
-                    ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg' 
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-gray-800'
+                    ? `bg-gradient-to-r ${module.color} text-white shadow-lg transform scale-105` 
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-white/60 dark:hover:bg-gray-800/60 hover:shadow-md'
                   }
                 `}
               >
-                <module.icon className="w-5 h-5" />
+                <div className={`p-2 rounded-xl ${
+                  activeModule === module.id 
+                    ? 'bg-white/20' 
+                    : 'bg-gradient-to-r ' + module.color + ' text-white group-hover:scale-110 transition-transform'
+                }`}>
+                  <module.icon className="w-5 h-5" />
+                </div>
                 <span className="font-medium">{module.name}</span>
               </button>
             ))}
@@ -276,14 +291,14 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
     { 
       label: 'Wellness Score', 
       value: `${stats.wellnessScore}%`, 
-      color: 'from-purple-500 to-purple-600', 
+      color: 'from-green-500 to-teal-500', 
       icon: TrendingUp,
       change: '+5% this week'
     },
     { 
       label: 'Current Streak', 
       value: `${stats.currentStreak} days`, 
-      color: 'from-blue-500 to-blue-600', 
+      color: 'from-blue-500 to-cyan-500', 
       icon: Calendar,
       change: 'Keep it up!'
     },
@@ -297,22 +312,22 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
     { 
       label: 'Assessments', 
       value: stats.assessmentsCompleted, 
-      color: 'from-green-500 to-emerald-500', 
+      color: 'from-purple-500 to-indigo-500', 
       icon: Brain,
       change: `${stats.assessmentsCompleted} completed`
     },
   ];
 
   return (
-    <div className="space-y-8 animate-slide-up">
+    <div className="space-y-8 animate-slide-up-smooth">
       {/* Welcome Header */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-400/20 via-blue-400/20 to-pink-400/20 rounded-3xl"></div>
-        <div className="relative p-8 glass rounded-3xl border-0">
+        <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-teal-400/20 to-blue-400/20 rounded-3xl"></div>
+        <div className="relative p-8 glass-modern rounded-3xl border-0">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold mb-2">
-                <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                <span className="text-goodmind-gradient">
                   Welcome back{userData?.displayName ? `, ${userData.displayName}` : ''}! 
                 </span>
                 <span className="text-3xl ml-2">🌅</span>
@@ -320,7 +335,7 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
               <p className="text-gray-600 dark:text-gray-300 text-lg">Ready to continue your wellness journey today?</p>
             </div>
             <div className="hidden md:block">
-              <div className="w-24 h-24 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center animate-pulse-gentle">
+              <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-teal-400 rounded-full flex items-center justify-center animate-pulse-soft">
                 <Award className="w-12 h-12 text-white" />
               </div>
             </div>
@@ -331,7 +346,7 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => (
-          <Card key={index} className="glass border-0 hover:shadow-xl transition-all duration-300 group">
+          <Card key={index} className="card-modern hover:shadow-xl transition-all duration-300 group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
@@ -347,9 +362,12 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
       </div>
 
       {/* Recent Activity */}
-      <Card className="glass border-0">
+      <Card className="card-modern">
         <CardHeader>
-          <CardTitle className="text-xl text-gray-800 dark:text-white">Recent Activity</CardTitle>
+          <CardTitle className="text-xl text-gray-800 dark:text-white flex items-center">
+            <Sparkles className="w-6 h-6 mr-2 text-green-500" />
+            Recent Activity
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {activityFeed.length === 0 ? (
@@ -359,7 +377,7 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
             </div>
           ) : (
             activityFeed.map((activity, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+              <div key={idx} className="flex items-center justify-between p-4 bg-white/50 dark:bg-gray-800/50 rounded-2xl hover:bg-white/70 dark:hover:bg-gray-800/70 transition-colors">
                 <span className="text-gray-700 dark:text-gray-300">
                   {activity.type === 'mood' && <>{activity.emoji} Logged mood: <b>{activity.label}</b></>}
                   {activity.type === 'assessment' && <>📝 Completed assessment: <b>{activity.label}</b></>}
@@ -402,7 +420,7 @@ const JournalModule = () => {
       await addDoc(collection(db, `users/${user.uid}/journal`), {
         text: entry,
         createdAt: new Date().toISOString(),
-        mood: 'neutral', // Could be enhanced with mood detection
+        mood: 'neutral',
       });
       setEntry('');
     } catch (error) {
@@ -429,16 +447,16 @@ const JournalModule = () => {
   }
 
   return (
-    <div className="space-y-6 animate-slide-up">
+    <div className="space-y-6 animate-slide-up-smooth">
       <div>
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Personal Journal</h1>
         <p className="text-gray-600 dark:text-gray-300">Your safe space for thoughts, feelings, and self-reflection</p>
       </div>
       
-      <Card className="glass border-0">
+      <Card className="card-modern">
         <CardContent className="p-8">
           <textarea
-            className="w-full p-4 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white mb-4 min-h-[120px] resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full p-4 rounded-2xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-white mb-4 min-h-[120px] resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
             placeholder="What's on your mind today? Write your thoughts, feelings, or reflections..."
             value={entry}
             onChange={e => setEntry(e.target.value)}
@@ -450,7 +468,7 @@ const JournalModule = () => {
             <Button 
               onClick={handleSave} 
               disabled={!entry.trim()} 
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+              className="btn-goodmind"
             >
               Save Entry
             </Button>
@@ -458,14 +476,14 @@ const JournalModule = () => {
         </CardContent>
       </Card>
       
-      <Card className="glass border-0">
+      <Card className="card-modern">
         <CardHeader>
           <CardTitle className="text-xl text-gray-800 dark:text-white">Your Journal Entries</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+              <div className="loading-spinner h-8 w-8"></div>
             </div>
           ) : journal.length === 0 ? (
             <div className="text-center py-8">
@@ -475,7 +493,7 @@ const JournalModule = () => {
           ) : (
             <div className="space-y-4">
               {journal.map(entry => (
-                <div key={entry.id} className="p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl">
+                <div key={entry.id} className="p-4 bg-white/50 dark:bg-gray-800/50 rounded-2xl hover:bg-white/70 dark:hover:bg-gray-800/70 transition-colors">
                   <div className="flex justify-between items-start mb-2">
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {new Date(entry.createdAt).toLocaleString()}
@@ -484,7 +502,7 @@ const JournalModule = () => {
                       size="sm" 
                       variant="outline" 
                       onClick={() => handleDelete(entry.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl"
                     >
                       Delete
                     </Button>
@@ -539,16 +557,16 @@ const ProfileModule = ({ onLogout }: { onLogout: () => void }) => {
   }
 
   return (
-    <div className="space-y-6 animate-slide-up">
+    <div className="space-y-6 animate-slide-up-smooth">
       <div>
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Profile Settings</h1>
         <p className="text-gray-600 dark:text-gray-300">Manage your account and preferences</p>
       </div>
       
-      <Card className="glass border-0">
+      <Card className="card-modern">
         <CardContent className="p-8">
           <div className="flex items-center space-x-6 mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center overflow-hidden">
+            <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-teal-500 rounded-full flex items-center justify-center overflow-hidden">
               {user.photoURL ? (
                 <img src={user.photoURL} alt="Profile" className="w-20 h-20 object-cover rounded-full" />
               ) : (
@@ -561,7 +579,7 @@ const ProfileModule = ({ onLogout }: { onLogout: () => void }) => {
               </label>
               <input
                 type="text"
-                className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-2xl bg-white dark:bg-gray-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
                 value={displayName}
                 onChange={e => setDisplayName(e.target.value)}
                 disabled={saving}
@@ -577,7 +595,7 @@ const ProfileModule = ({ onLogout }: { onLogout: () => void }) => {
                 type="email"
                 value={user.email || ''}
                 disabled
-                className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
               />
             </div>
             
@@ -588,7 +606,7 @@ const ProfileModule = ({ onLogout }: { onLogout: () => void }) => {
                   type="text"
                   value={user.metadata?.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : '—'}
                   disabled
-                  className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                  className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
                 />
               </div>
               <div>
@@ -597,14 +615,14 @@ const ProfileModule = ({ onLogout }: { onLogout: () => void }) => {
                   type="text"
                   value={user.metadata?.lastSignInTime ? new Date(user.metadata.lastSignInTime).toLocaleDateString() : '—'}
                   disabled
-                  className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+                  className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-2xl bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
                 />
               </div>
             </div>
           </div>
           
           {message && (
-            <div className={`p-3 rounded-lg mb-4 ${
+            <div className={`p-3 rounded-2xl mb-4 ${
               message.includes('Error') 
                 ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400' 
                 : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
@@ -617,14 +635,14 @@ const ProfileModule = ({ onLogout }: { onLogout: () => void }) => {
             <Button 
               onClick={handleSave} 
               disabled={saving || !displayName.trim()}
-              className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+              className="btn-goodmind"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </Button>
             <Button 
               onClick={onLogout}
               variant="outline" 
-              className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
+              className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 rounded-2xl"
             >
               Sign Out
             </Button>
@@ -683,17 +701,17 @@ const SettingsModule = () => {
   }
 
   return (
-    <div className="space-y-6 animate-slide-up">
+    <div className="space-y-6 animate-slide-up-smooth">
       <div>
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Settings</h1>
         <p className="text-gray-600 dark:text-gray-300">Customize your GoodMind experience</p>
       </div>
       
-      <Card className="glass border-0">
+      <Card className="card-modern">
         <CardContent className="p-8 space-y-6">
           {loading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+              <div className="loading-spinner h-8 w-8"></div>
             </div>
           ) : (
             <>
@@ -706,7 +724,7 @@ const SettingsModule = () => {
                   type="checkbox"
                   checked={settings.notifications}
                   onChange={e => handleChange('notifications', e.target.checked)}
-                  className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                  className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
                 />
               </div>
               
@@ -719,7 +737,7 @@ const SettingsModule = () => {
                   type="checkbox"
                   checked={settings.dataSharing}
                   onChange={e => handleChange('dataSharing', e.target.checked)}
-                  className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                  className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
                 />
               </div>
               
@@ -729,7 +747,7 @@ const SettingsModule = () => {
                   <p className="text-sm text-gray-600 dark:text-gray-300">Control who can see your wellness data</p>
                 </div>
                 <select
-                  className="border border-gray-200 dark:border-gray-600 rounded-lg p-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-white"
+                  className="border border-gray-200 dark:border-gray-600 rounded-2xl p-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-white focus:ring-2 focus:ring-green-500"
                   value={settings.privacy}
                   onChange={e => handleChange('privacy', e.target.value)}
                 >
