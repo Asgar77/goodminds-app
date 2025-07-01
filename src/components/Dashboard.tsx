@@ -35,6 +35,11 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
     return displayName.split(' ')[0] || 'Student';
   };
 
+  // Handle Book Appointment
+  const handleBookAppointment = () => {
+    window.open('https://calendly.com/goodmind/appointment1?month=2025-07', '_blank');
+  };
+
   // Fetch dashboard statistics
   useEffect(() => {
     if (!user) return;
@@ -131,29 +136,40 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 h-full flex flex-col">
-          {/* Logo */}
-          <div className="flex items-center space-x-3 mb-8">
-            <div className="w-12 h-12 relative">
-              <img
-                src="/GoodMind new logo (13).png"
-                alt="GoodMind Logo"
-                className="w-full h-full object-contain animate-float-gentle"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const fallback = document.createElement('div');
-                  fallback.className = 'w-12 h-12 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center';
-                  fallback.innerHTML = '<span class="text-white text-xl">🧠</span>';
-                  e.currentTarget.parentNode?.appendChild(fallback);
-                }}
-              />
+          {/* Logo and Book Appointment Button */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 relative">
+                <img
+                  src="/GoodMind_new_logo__25_-removebg-preview.png"
+                  alt="GoodMind Logo"
+                  className="w-full h-full object-contain animate-float-gentle"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fallback = document.createElement('div');
+                    fallback.className = 'w-12 h-12 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center';
+                    fallback.innerHTML = '<span class="text-white text-xl">🧠</span>';
+                    e.currentTarget.parentNode?.appendChild(fallback);
+                  }}
+                />
+              </div>
+              <div>
+                <span className="text-xl font-bold text-gray-800">
+                  goodmind
+                </span>
+                <span className="text-green-600 font-medium">.app</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Your Digital Sanctuary</p>
+              </div>
             </div>
-            <div>
-              <span className="text-2xl font-bold text-gray-800">
-                goodmind
-              </span>
-              <span className="text-green-600 font-medium">.app</span>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Your Digital Sanctuary</p>
-            </div>
+            
+            {/* Book Appointment Button in Menu */}
+            <Button
+              onClick={handleBookAppointment}
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded-xl"
+            >
+              Book
+            </Button>
           </div>
 
           {/* User Welcome with First Name */}
