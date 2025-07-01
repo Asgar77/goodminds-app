@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Phone, PhoneCall, Mic, MicOff, Volume2, VolumeX, MessageCircle } from 'lucide-react';
+import { Phone, PhoneCall, Mic, MicOff, Volume2, VolumeX, MessageCircle, Calendar, ArrowLeft } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -37,7 +37,7 @@ const VoiceAssistant = () => {
       snapshot.forEach(doc => {
         sessions.push({ id: doc.id, ...doc.data() });
       });
-      setRecentSessions(sessions.slice(0, 5)); // Show last 5 sessions
+      setRecentSessions(sessions.slice(0, 5));
     });
 
     return () => unsubscribe();
@@ -60,11 +60,15 @@ const VoiceAssistant = () => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleBookAppointment = () => {
+    window.open('https://calendly.com/goodmind/appointment1?month=2025-07', '_blank');
+  };
+
   const startCall = async () => {
     if (!user) {
       toast({
         title: "Authentication Required",
-        description: "Please sign in to start a session with Tara.",
+        description: "Please sign in to start a session with TARA.",
         variant: "destructive",
       });
       return;
@@ -79,15 +83,15 @@ const VoiceAssistant = () => {
       await addDoc(collection(db, `users/${user.uid}/taraSessions`), {
         startTime: serverTimestamp(),
         status: 'active',
-        topic: 'General wellness check-in',
+        topic: 'Student wellness check-in',
       });
     } catch (error) {
       console.error('Error starting session:', error);
     }
 
-    // Simulate Tara's greeting
+    // Simulate TARA's greeting
     setTimeout(() => {
-      const greeting = "Hello! I'm Tara, your mental wellness companion. I'm here to listen and support you. How are you feeling today?";
+      const greeting = "Hello! I'm TARA, your mental wellness companion. I'm here to listen and support you through your academic journey. How are you feeling today?";
       setConversation([{ speaker: 'tara', message: greeting, timestamp: new Date() }]);
       speakText(greeting);
     }, 1000);
@@ -105,13 +109,13 @@ const VoiceAssistant = () => {
         await addDoc(collection(db, `users/${user.uid}/taraSessions`), {
           endTime: serverTimestamp(),
           duration: formatDuration(sessionDuration),
-          topic: conversation.length > 0 ? 'Wellness conversation' : 'Brief check-in',
+          topic: conversation.length > 0 ? 'Student wellness conversation' : 'Brief check-in',
           conversationLength: conversation.length,
         });
         
         toast({
           title: "Session Completed",
-          description: `Your ${formatDuration(sessionDuration)} session with Tara has been saved.`,
+          description: `Your ${formatDuration(sessionDuration)} session with TARA has been saved.`,
         });
       } catch (error) {
         console.error('Error ending session:', error);
@@ -170,7 +174,7 @@ const VoiceAssistant = () => {
       setIsSpeaking(false);
       toast({
         title: "Audio Error",
-        description: "Unable to play Tara's voice. Check your connection.",
+        description: "Unable to play TARA's voice. Check your connection.",
         variant: "destructive",
       });
     }
@@ -179,7 +183,7 @@ const VoiceAssistant = () => {
   const getAgentResponse = async (userMessage: string) => {
     if (!elevenLabsAgentApiKey || !elevenLabsAgentId) {
       console.warn('ElevenLabs Agent API not configured');
-      return { text: "I'm sorry, I can't respond right now." };
+      return { text: "I'm here to listen and support you. Can you tell me more about how you're feeling?" };
     }
     try {
       const response = await fetch(`https://api.elevenlabs.io/v1/agents/${elevenLabsAgentId}/chat`, {
@@ -200,7 +204,7 @@ const VoiceAssistant = () => {
       }
     } catch (error) {
       console.error('Error with agent API:', error);
-      return { text: "I'm sorry, I can't respond right now." };
+      return { text: "I'm here to listen and support you. Can you tell me more about how you're feeling?" };
     }
   };
 
@@ -233,7 +237,7 @@ const VoiceAssistant = () => {
         message: transcript, 
         timestamp: new Date() 
       }]);
-      // Call ElevenLabs Agent API for dynamic response
+      
       const agentResponse = await getAgentResponse(transcript);
       setConversation(prev => [...prev, { 
         speaker: 'tara', 
@@ -270,83 +274,94 @@ const VoiceAssistant = () => {
   }
 
   return (
-    <div className="space-y-8 animate-slide-up">
+    <div className="space-y-8 animate-slide-up-smooth">
       <div>
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Call to Tara</h1>
-        <p className="text-gray-600 dark:text-gray-300">
-          Connect with Tara, your AI-powered mental health companion. She's here to listen, 
-          support, and guide you through your wellness journey.
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Call to TARA</h1>
+        <p className="text-gray-600">
+          Connect with TARA, your AI-powered mental health companion designed specifically for students. 
+          She's here to listen, support, and guide you through your academic and personal challenges.
         </p>
       </div>
 
-      {/* Tara Introduction */}
-      <Card className="glass border-0">
+      {/* TARA Introduction */}
+      <Card className="card-modern">
         <CardContent className="p-8 text-center">
-          <div className="w-32 h-32 mx-auto mb-6 bg-gradient-to-br from-purple-500 via-blue-500 to-pink-500 rounded-full flex items-center justify-center animate-pulse-gentle">
-            <div className="w-28 h-28 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center">
+          <div className="w-32 h-32 mx-auto mb-6 bg-gradient-to-br from-green-500 via-teal-500 to-blue-500 rounded-full flex items-center justify-center animate-pulse-soft relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-teal-400 rounded-full animate-pulse"></div>
+            <div className="relative w-28 h-28 bg-white rounded-full flex items-center justify-center">
               <span className="text-4xl">🌸</span>
             </div>
           </div>
           
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Meet Tara</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-            Tara is your compassionate AI mental health specialist, available 24/7 to provide 
-            support, guidance, and a listening ear. She combines advanced AI with empathetic 
-            conversation to create a safe space for your thoughts and feelings.
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Meet TARA</h2>
+          <p className="text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
+            TARA is your compassionate AI mental health specialist, available 24/7 to provide 
+            support, guidance, and a listening ear specifically for student challenges. She understands 
+            academic stress, social pressures, and the unique mental health needs of students.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <div className="bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 p-4 rounded-xl">
-              <MessageCircle className="w-8 h-8 text-purple-600 dark:text-purple-400 mx-auto mb-2" />
-              <h3 className="font-semibold text-gray-800 dark:text-white mb-1">Real-time Voice</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Natural conversation with AI-powered voice</p>
+            <div className="bg-gradient-to-r from-green-100 to-teal-100 p-4 rounded-2xl">
+              <MessageCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+              <h3 className="font-semibold text-gray-800 mb-1">Student-Focused Support</h3>
+              <p className="text-sm text-gray-600">Specialized in academic stress and student mental health</p>
             </div>
-            <div className="bg-gradient-to-r from-blue-100 to-green-100 dark:from-blue-900/30 dark:to-green-900/30 p-4 rounded-xl">
-              <Phone className="w-8 h-8 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
-              <h3 className="font-semibold text-gray-800 dark:text-white mb-1">24/7 Available</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Always here when you need support</p>
+            <div className="bg-gradient-to-r from-teal-100 to-blue-100 p-4 rounded-2xl">
+              <Phone className="w-8 h-8 text-teal-600 mx-auto mb-2" />
+              <h3 className="font-semibold text-gray-800 mb-1">24/7 Available</h3>
+              <p className="text-sm text-gray-600">Always here when you need support, day or night</p>
             </div>
-            <div className="bg-gradient-to-r from-green-100 to-pink-100 dark:from-green-900/30 dark:to-pink-900/30 p-4 rounded-xl">
-              <Volume2 className="w-8 h-8 text-green-600 dark:text-green-400 mx-auto mb-2" />
-              <h3 className="font-semibold text-gray-800 dark:text-white mb-1">Confidential</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Private and secure conversations</p>
+            <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-4 rounded-2xl">
+              <Volume2 className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+              <h3 className="font-semibold text-gray-800 mb-1">Confidential & Safe</h3>
+              <p className="text-sm text-gray-600">Private conversations in a judgment-free space</p>
             </div>
           </div>
 
-          <Button 
-            onClick={startCall}
-            size="lg"
-            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-lg px-12 py-6 rounded-2xl transform hover:scale-105 transition-all duration-300 shadow-xl"
-          >
-            <Phone className="w-6 h-6 mr-3" />
-            Start Session with Tara
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              onClick={startCall}
+              className="btn-goodmind text-lg px-12 py-6 rounded-2xl transform hover:scale-105 transition-all duration-300 shadow-xl"
+            >
+              <Phone className="w-6 h-6 mr-3" />
+              Start Session with TARA
+            </Button>
+            
+            <Button 
+              onClick={handleBookAppointment}
+              variant="outline"
+              className="border-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white text-lg px-12 py-6 rounded-2xl transform hover:scale-105 transition-all duration-300"
+            >
+              <Calendar className="w-6 h-6 mr-3" />
+              Book an Appointment
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       {/* Recent Sessions */}
-      <Card className="glass border-0">
+      <Card className="card-modern">
         <CardHeader>
-          <CardTitle className="text-xl text-gray-800 dark:text-white">Recent Sessions</CardTitle>
+          <CardTitle className="text-xl text-gray-800">Recent Sessions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {recentSessions.length === 0 ? (
               <div className="text-center py-8">
                 <Phone className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">No sessions yet. Start your first conversation with Tara!</p>
+                <p className="text-gray-500">No sessions yet. Start your first conversation with TARA!</p>
               </div>
             ) : (
               recentSessions.map((session, index) => (
-                <div key={session.id || index} className="flex items-center justify-between p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl">
+                <div key={session.id || index} className="flex items-center justify-between p-4 bg-white/50 rounded-2xl hover:bg-white/70 transition-colors">
                   <div>
-                    <div className="font-medium text-gray-800 dark:text-white">{session.topic || 'Wellness conversation'}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-300">
+                    <div className="font-medium text-gray-800">{session.topic || 'Student wellness conversation'}</div>
+                    <div className="text-sm text-gray-600">
                       {session.startTime ? new Date(session.startTime.toDate()).toLocaleString() : 'Recent'} 
                       {session.duration && ` • ${session.duration}`}
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">View Notes</Button>
+                  <Button variant="outline" size="sm" className="rounded-xl">View Notes</Button>
                 </div>
               ))
             )}
@@ -354,20 +369,28 @@ const VoiceAssistant = () => {
         </CardContent>
       </Card>
 
-      {/* Tips */}
-      <Card className="glass border-0">
+      {/* Tips for Students */}
+      <Card className="card-modern">
         <CardHeader>
-          <CardTitle className="text-xl text-gray-800 dark:text-white">💡 Tips for Your Session</CardTitle>
+          <CardTitle className="text-xl text-gray-800">💡 Tips for Your Session</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 p-4 rounded-xl">
-              <h4 className="font-semibold text-gray-800 dark:text-white mb-2">🎧 Find a Quiet Space</h4>
-              <p className="text-gray-700 dark:text-gray-300 text-sm">Choose a comfortable, private environment where you feel safe to express yourself.</p>
+            <div className="bg-gradient-to-r from-green-100 to-teal-100 p-4 rounded-2xl">
+              <h4 className="font-semibold text-gray-800 mb-2">🎧 Find a Quiet Study Space</h4>
+              <p className="text-gray-700 text-sm">Choose a comfortable, private environment where you feel safe to express yourself about academic and personal challenges.</p>
             </div>
-            <div className="bg-gradient-to-r from-blue-100 to-pink-100 dark:from-blue-900/30 dark:to-pink-900/30 p-4 rounded-xl">
-              <h4 className="font-semibold text-gray-800 dark:text-white mb-2">💭 Be Open & Honest</h4>
-              <p className="text-gray-700 dark:text-gray-300 text-sm">Tara is here to help. The more honest you are, the better support she can provide.</p>
+            <div className="bg-gradient-to-r from-teal-100 to-blue-100 p-4 rounded-2xl">
+              <h4 className="font-semibold text-gray-800 mb-2">💭 Share Your Academic Stress</h4>
+              <p className="text-gray-700 text-sm">TARA understands student life. Feel free to discuss exam anxiety, social pressures, or any academic concerns.</p>
+            </div>
+            <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-4 rounded-2xl">
+              <h4 className="font-semibold text-gray-800 mb-2">⏰ No Time Pressure</h4>
+              <p className="text-gray-700 text-sm">Take your time. TARA is available 24/7, so you can have sessions whenever you need support.</p>
+            </div>
+            <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-4 rounded-2xl">
+              <h4 className="font-semibold text-gray-800 mb-2">🤝 Remember: You're Not Alone</h4>
+              <p className="text-gray-700 text-sm">Many students face similar challenges. TARA is here to remind you that seeking help is a sign of strength.</p>
             </div>
           </div>
         </CardContent>
@@ -376,7 +399,7 @@ const VoiceAssistant = () => {
   );
 };
 
-// Enhanced Call Interface Component
+// iOS-style Call Interface Component
 const CallInterface = ({ 
   isMuted, 
   setIsMuted, 
@@ -399,31 +422,45 @@ const CallInterface = ({
   formatDuration: (seconds: number) => string;
 }) => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
-      <div className="max-w-md w-full space-y-8 text-center">
-        {/* Tara Avatar */}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 via-teal-900 to-blue-900 p-4 relative overflow-hidden">
+      {/* Background blur effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-green-400/20 rounded-full blur-3xl animate-pulse-soft"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-teal-400/20 rounded-full blur-3xl animate-float-gentle"></div>
+      </div>
+      
+      <div className="max-w-md w-full space-y-8 text-center relative z-10">
+        {/* TARA Avatar */}
         <div className="relative">
           <div className={`
-            w-48 h-48 mx-auto bg-gradient-to-br from-purple-400 via-blue-400 to-pink-400 rounded-full flex items-center justify-center
+            w-48 h-48 mx-auto bg-gradient-to-br from-green-400 via-teal-400 to-blue-400 rounded-full flex items-center justify-center relative overflow-hidden
             ${isSpeaking ? 'animate-pulse ring-8 ring-white/30' : ''}
-            ${isListening ? 'ring-8 ring-green-400/50' : ''}
+            ${isListening ? 'ring-8 ring-green-400/50 animate-pulse' : ''}
           `}>
-            <div className="w-44 h-44 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center">
+            {/* Animated background for speaking */}
+            {isSpeaking && (
+              <div className="absolute inset-0 bg-gradient-to-br from-green-300 to-teal-300 rounded-full animate-pulse"></div>
+            )}
+            
+            <div className="relative w-44 h-44 bg-white rounded-full flex items-center justify-center">
               <span className="text-6xl">🌸</span>
             </div>
           </div>
           
           {/* Speaking/Listening Indicator */}
           {(isSpeaking || isListening) && (
-            <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2">
-              <div className="flex space-x-1">
-                {[...Array(3)].map((_, i) => (
+            <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2">
+              <div className="flex space-x-2">
+                {[...Array(4)].map((_, i) => (
                   <div
                     key={i}
                     className={`w-2 h-8 rounded-full animate-pulse ${
                       isListening ? 'bg-green-400' : 'bg-white'
                     }`}
-                    style={{ animationDelay: `${i * 0.2}s` }}
+                    style={{ 
+                      animationDelay: `${i * 0.2}s`,
+                      animationDuration: '1s'
+                    }}
                   />
                 ))}
               </div>
@@ -433,55 +470,71 @@ const CallInterface = ({
 
         {/* Call Status */}
         <div className="space-y-2">
-          <h2 className="text-3xl font-bold text-white">Tara</h2>
+          <h2 className="text-3xl font-bold text-white">TARA</h2>
           <p className="text-white/80 text-lg">
             {isSpeaking ? 'Speaking...' : isListening ? 'Listening...' : 'Ready to listen...'}
           </p>
-          <p className="text-white/60">Session in progress • {formatDuration(sessionDuration)}</p>
+          <div className="bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 inline-block">
+            <p className="text-white/60 text-sm">Session • {formatDuration(sessionDuration)}</p>
+          </div>
         </div>
 
-        {/* Live Transcript */}
-        <div className="bg-black/20 backdrop-blur-sm rounded-2xl p-6 text-left max-h-40 overflow-y-auto">
-          <h3 className="text-white font-medium mb-3">Live Conversation</h3>
+        {/* Live Conversation */}
+        <div className="bg-black/20 backdrop-blur-sm rounded-3xl p-6 text-left max-h-40 overflow-y-auto">
+          <h3 className="text-white font-medium mb-3 text-center">Live Conversation</h3>
           <div className="space-y-2 text-white/80 text-sm">
             {conversation.length === 0 ? (
-              <p className="text-white/60 italic">Conversation will appear here...</p>
+              <p className="text-white/60 italic text-center">Conversation will appear here...</p>
             ) : (
               conversation.slice(-3).map((msg, index) => (
-                <div key={index} className={`${msg.speaker === 'tara' ? 'text-blue-300' : 'text-green-300'}`}>
-                  <strong>{msg.speaker === 'tara' ? 'Tara' : 'You'}:</strong> {msg.message}
+                <div key={index} className={`${msg.speaker === 'tara' ? 'text-green-300' : 'text-blue-300'}`}>
+                  <strong>{msg.speaker === 'tara' ? 'TARA' : 'You'}:</strong> {msg.message}
                 </div>
               ))
             )}
           </div>
         </div>
 
-        {/* Call Controls */}
-        <div className="flex justify-center space-x-6">
-          <Button
+        {/* Call Controls - iOS Style */}
+        <div className="flex justify-center space-x-8">
+          {/* Mute Button */}
+          <button
             onClick={() => setIsMuted(!isMuted)}
-            size="lg"
-            className={`w-16 h-16 rounded-full ${isMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-white/20 hover:bg-white/30'} backdrop-blur-sm border border-white/30`}
+            className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
+              isMuted 
+                ? 'bg-red-500 hover:bg-red-600' 
+                : 'bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30'
+            }`}
           >
             {isMuted ? <MicOff className="w-6 h-6 text-white" /> : <Mic className="w-6 h-6 text-white" />}
-          </Button>
+          </button>
 
-          <Button
+          {/* Talk Button */}
+          <button
             onClick={onStartListening}
             disabled={isSpeaking || isListening}
-            size="lg"
-            className={`w-16 h-16 rounded-full ${isListening ? 'bg-green-500' : 'bg-blue-500 hover:bg-blue-600'} backdrop-blur-sm`}
+            className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
+              isListening 
+                ? 'bg-green-500 animate-pulse' 
+                : 'bg-blue-500 hover:bg-blue-600 disabled:opacity-50'
+            }`}
           >
             <MessageCircle className="w-6 h-6 text-white" />
-          </Button>
+          </button>
 
-          <Button
+          {/* End Call Button */}
+          <button
             onClick={onEndCall}
-            size="lg"
-            className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600"
+            className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all duration-300 transform hover:scale-105"
           >
-            <PhoneCall className="w-6 h-6 text-white rotate-45" />
-          </Button>
+            <PhoneCall className="w-6 h-6 text-white transform rotate-135" />
+          </button>
+        </div>
+
+        {/* Instructions */}
+        <div className="text-white/60 text-sm space-y-1">
+          <p>Tap the blue button to speak</p>
+          <p>TARA will respond with voice and text</p>
         </div>
       </div>
     </div>

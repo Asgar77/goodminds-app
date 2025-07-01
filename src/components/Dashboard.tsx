@@ -29,6 +29,12 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
   const user = auth.currentUser;
   const { userData } = useUserData(user?.uid);
 
+  // Get user's first name for welcome message
+  const getFirstName = () => {
+    const displayName = userData?.displayName || user?.displayName || '';
+    return displayName.split(' ')[0] || 'Student';
+  };
+
   // Fetch dashboard statistics
   useEffect(() => {
     if (!user) return;
@@ -108,7 +114,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
   };
 
   return (
-    <div className="min-h-screen flex bg-goodmind-gradient">
+    <div className="min-h-screen flex bg-gradient-to-br from-green-50 via-teal-50 to-blue-50">
       {/* Mobile Menu Button */}
       <Button
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -142,7 +148,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
               />
             </div>
             <div>
-              <span className="text-2xl font-bold text-goodmind-gradient">
+              <span className="text-2xl font-bold text-gray-800">
                 goodmind
               </span>
               <span className="text-green-600 font-medium">.app</span>
@@ -150,7 +156,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
             </div>
           </div>
 
-          {/* User Welcome */}
+          {/* User Welcome with First Name */}
           <div className="mb-6 p-4 glass-modern rounded-2xl border border-white/20">
             <div className="flex items-center space-x-3 mb-3">
               <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-teal-400 rounded-full flex items-center justify-center">
@@ -162,7 +168,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {userData?.displayName || user?.displayName || 'Welcome'}
+                  Welcome, {getFirstName()}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Wellness Explorer</p>
               </div>
@@ -327,8 +333,8 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold mb-2">
-                <span className="text-goodmind-gradient">
-                  Welcome back{userData?.displayName ? `, ${userData.displayName}` : ''}! 
+                <span className="text-gray-800">
+                  Welcome back{userData?.displayName ? `, ${userData.displayName.split(' ')[0]}` : ''}! 
                 </span>
                 <span className="text-3xl ml-2">🌅</span>
               </h1>

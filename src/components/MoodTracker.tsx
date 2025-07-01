@@ -16,6 +16,7 @@ const MoodTracker = () => {
     { id: 'calm', emoji: '😌', label: 'Calm', color: 'from-blue-400 to-blue-500' },
     { id: 'neutral', emoji: '😐', label: 'Neutral', color: 'from-gray-400 to-gray-500' },
     { id: 'anxious', emoji: '😰', label: 'Anxious', color: 'from-orange-400 to-red-500' },
+    { id: 'angry', emoji: '😠', label: 'Angry', color: 'from-red-500 to-red-600' },
     { id: 'sad', emoji: '😢', label: 'Sad', color: 'from-purple-400 to-purple-500' },
   ];
 
@@ -72,19 +73,19 @@ const MoodTracker = () => {
   }
 
   return (
-    <div className="space-y-8 animate-slide-up">
+    <div className="space-y-8 animate-slide-up-smooth">
       <div>
         <h1 className="text-3xl font-bold text-gray-800 mb-2">How are you feeling today?</h1>
         <p className="text-gray-600">Track your daily emotions to better understand your mental wellness patterns.</p>
       </div>
 
       {/* Mood Selection */}
-      <Card className="glass border-0">
+      <Card className="card-modern">
         <CardHeader>
           <CardTitle className="text-xl text-gray-800">Select Your Mood</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
             {moods.map((mood) => (
               <button
                 key={mood.id}
@@ -93,7 +94,7 @@ const MoodTracker = () => {
                   p-6 rounded-2xl text-center transition-all duration-300 transform hover:scale-105
                   ${selectedMood === mood.id 
                     ? `bg-gradient-to-br ${mood.color} text-white shadow-lg` 
-                    : 'bg-white/70 hover:bg-white/90 text-gray-700'
+                    : 'bg-white/70 hover:bg-white/90 text-gray-700 shadow-md hover:shadow-lg'
                   }
                 `}
               >
@@ -106,19 +107,24 @@ const MoodTracker = () => {
       </Card>
 
       {/* Mood History */}
-      <Card className="glass border-0">
+      <Card className="card-modern">
         <CardHeader>
           <CardTitle className="text-xl text-gray-800">Your Mood Journey</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div>Loading...</div>
+            <div className="flex justify-center py-8">
+              <div className="loading-spinner h-8 w-8"></div>
+            </div>
           ) : moodHistory.length === 0 ? (
-            <div>No moods logged yet.</div>
+            <div className="text-center py-8">
+              <div className="text-6xl mb-4">😊</div>
+              <p className="text-gray-500">No moods logged yet. Start tracking your emotions!</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {moodHistory.map((entry, index) => (
-                <div key={entry.id} className="flex items-center justify-between p-4 bg-white/50 rounded-xl">
+                <div key={entry.id} className="flex items-center justify-between p-4 bg-white/50 rounded-2xl hover:bg-white/70 transition-colors">
                   <div className="flex items-center space-x-4">
                     <span className="text-3xl">{entry.emoji}</span>
                     <div>
@@ -126,7 +132,14 @@ const MoodTracker = () => {
                       <div className="text-sm text-gray-600">{new Date(entry.createdAt).toLocaleString()}</div>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => handleDelete(entry.id)}>Delete</Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => handleDelete(entry.id)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl"
+                  >
+                    Delete
+                  </Button>
                 </div>
               ))}
             </div>
@@ -135,12 +148,12 @@ const MoodTracker = () => {
       </Card>
 
       {/* Insights */}
-      <Card className="glass border-0">
+      <Card className="card-modern">
         <CardHeader>
           <CardTitle className="text-xl text-gray-800">Weekly Insights</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="bg-gradient-to-r from-purple-100 to-blue-100 p-6 rounded-xl">
+          <div className="bg-gradient-to-r from-green-100 to-teal-100 p-6 rounded-2xl">
             <h4 className="font-semibold text-gray-800 mb-2">💡 This Week's Pattern</h4>
             <p className="text-gray-700">
               {getInsights()}
