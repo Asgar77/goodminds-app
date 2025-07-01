@@ -132,17 +132,17 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </Button>
 
-      {/* Enhanced Sidebar with Smaller, Organized Logos */}
+      {/* Enhanced Sidebar with Smaller, Organized Logos - NO TEXT */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-40 w-80 glass-modern border-r border-white/20
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 h-full flex flex-col">
-          {/* Header with Smaller, More Organized Logos */}
+          {/* Header with Smaller, More Organized Logos - REMOVED TEXT */}
           <div className="flex items-center justify-between mb-8">
-            {/* GoodMind Logo - Smaller and More Organized */}
-            <div className="flex items-center space-x-3">
+            {/* GoodMind Logo - Smaller and More Organized - NO TEXT */}
+            <div className="flex items-center">
               <div className="w-12 h-12 relative">
                 <img
                   src="/GoodMind_new_logo__25_-removebg-preview.png"
@@ -157,13 +157,9 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
                   }}
                 />
               </div>
-              <div>
-                <span className="text-lg font-bold text-gray-800">GoodMind</span>
-                <p className="text-xs text-gray-500">Digital Sanctuary</p>
-              </div>
             </div>
             
-            {/* Springfield Logo - Smaller and More Organized */}
+            {/* Springfield Logo - Smaller and More Organized - NO TEXT */}
             <div className="w-10 h-10 relative">
               <img
                 src="/images-removebg-preview.png"
