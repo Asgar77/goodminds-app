@@ -96,9 +96,13 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({ onAuthSuccess, onAuthError }) =
       console.log("Sign-in successful:", result.user);
     } catch (error: any) {
       console.error("Sign-in error:", error);
-      const errorMessage = error.code === 'auth/popup-closed-by-user' 
-        ? "Sign-in was cancelled" 
-        : "Sign-in failed. Please try again.";
+      let errorMessage = "Sign-in failed. Please try again.";
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = "Sign-in was cancelled";
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = "Pop-up was blocked by your browser. Please disable your browser's pop-up blocker for this site and try again.";
+      }
       
       toast({
         title: "Authentication Error",
