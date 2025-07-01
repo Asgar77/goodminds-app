@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { auth, provider, db } from "../lib/firebase";
-import { signInWithPopup, signOut, onAuthStateChanged, User } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Mail, User as UserIcon } from 'lucide-react';
+import { Brain, Mail, User as UserIcon, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // Custom hook to listen to Firestore user document
@@ -42,12 +42,13 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({ onAuthSuccess, onAuthError }) =
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
+  const [showPopupBlockedHelp, setShowPopupBlockedHelp] = useState(false);
   const { toast } = useToast();
 
   // Listen to Firestore user data
   const { userData, loading: userDataLoading } = useUserData(user?.uid);
 
-  // Listen for auth state changes
+  // Listen for auth state changes and handle redirect results
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
@@ -81,12 +82,23 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({ onAuthSuccess, onAuthError }) =
         }
       }
     });
+
+    // Check for redirect result on component mount
+    getRedirectResult(auth).then((result) => {
+      if (result) {
+        console.log("Redirect sign-in successful:", result.user);
+      }
+    }).catch((error) => {
+      console.error("Redirect sign-in error:", error);
+    });
     
     return () => unsubscribe();
   }, [onAuthSuccess, onAuthError, toast]);
 
   const handleSignIn = async () => {
     setAuthLoading(true);
+    setShowPopupBlockedHelp(false);
+    
     try {
       provider.setCustomParameters({
         prompt: 'select_account'
@@ -101,7 +113,8 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({ onAuthSuccess, onAuthError }) =
       if (error.code === 'auth/popup-closed-by-user') {
         errorMessage = "Sign-in was cancelled";
       } else if (error.code === 'auth/popup-blocked') {
-        errorMessage = "Pop-up was blocked by your browser. Please disable your browser's pop-up blocker for this site and try again.";
+        setShowPopupBlockedHelp(true);
+        errorMessage = "Pop-up was blocked by your browser. Please see the instructions below or try the redirect method.";
       }
       
       toast({
@@ -112,6 +125,26 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({ onAuthSuccess, onAuthError }) =
       
       onAuthError?.(errorMessage);
     } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignInWithRedirect = async () => {
+    setAuthLoading(true);
+    try {
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      
+      await signInWithRedirect(auth, provider);
+      // The page will redirect, so we don't need to handle the result here
+    } catch (error: any) {
+      console.error("Redirect sign-in error:", error);
+      toast({
+        title: "Authentication Error",
+        description: "Failed to redirect for sign-in. Please try again.",
+        variant: "destructive",
+      });
       setAuthLoading(false);
     }
   };
@@ -192,7 +225,7 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({ onAuthSuccess, onAuthError }) =
         </div>
         <CardTitle className="text-xl">Continue Your Journey</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
         <Button
           onClick={handleSignIn}
           disabled={authLoading}
@@ -212,6 +245,32 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({ onAuthSuccess, onAuthError }) =
             </>
           )}
         </Button>
+
+        {showPopupBlockedHelp && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2 text-amber-800">
+              <AlertCircle className="w-4 h-4" />
+              <span className="font-medium text-sm">Pop-up Blocked</span>
+            </div>
+            <div className="text-sm text-amber-700 space-y-2">
+              <p>Your browser blocked the sign-in window. To fix this:</p>
+              <ol className="list-decimal list-inside space-y-1 ml-2">
+                <li>Look for a pop-up blocker icon in your address bar</li>
+                <li>Click it and select "Always allow pop-ups from this site"</li>
+                <li>Refresh the page and try signing in again</li>
+              </ol>
+              <p className="font-medium">Or try the alternative method below:</p>
+            </div>
+            <Button
+              onClick={handleSignInWithRedirect}
+              disabled={authLoading}
+              variant="outline"
+              className="w-full"
+            >
+              Sign in with Redirect (Alternative)
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
