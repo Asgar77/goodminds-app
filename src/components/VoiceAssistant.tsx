@@ -6,10 +6,10 @@ import { auth, db } from '../lib/firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
-// ElevenLabs configuration from environment variables
-const elevenLabsApiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
-const elevenLabsVoiceId = import.meta.env.VITE_ELEVENLABS_VOICE_ID;
-const elevenLabsAgentId = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
+// ElevenLabs configuration - using provided credentials
+const elevenLabsApiKey = "sk_dbac9f0d5fca56d2d8230ff926da6b1e6c7513e8df8026ef";
+const elevenLabsAgentId = "agent_01jz0yb4veemarp3sbqx2hgxy4";
+const elevenLabsVoiceId = "21m00Tcm4TlvDq8ikWAM"; // Default voice ID
 
 const VoiceAssistant = () => {
   const [isCallActive, setIsCallActive] = useState(false);
@@ -33,6 +33,8 @@ const VoiceAssistant = () => {
         hasAgentId: !!elevenLabsAgentId
       });
       setConnectionStatus('error');
+    } else {
+      setConnectionStatus('disconnected');
     }
   }, []);
 
@@ -82,17 +84,7 @@ const VoiceAssistant = () => {
     if (!elevenLabsApiKey || !elevenLabsAgentId) {
       toast({
         title: "Configuration Error",
-        description: "ElevenLabs API credentials are missing. Please check your environment configuration.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    // Check if credentials are still placeholder values
-    if (elevenLabsApiKey === 'your_elevenlabs_api_key_here' || elevenLabsAgentId === 'your_agent_id_here') {
-      toast({
-        title: "Configuration Required",
-        description: "Please replace the placeholder ElevenLabs credentials in your .env file with actual values from your ElevenLabs dashboard.",
+        description: "ElevenLabs API credentials are missing.",
         variant: "destructive",
       });
       return false;
@@ -119,9 +111,9 @@ const VoiceAssistant = () => {
         });
         return true;
       } else if (response.status === 404) {
-        throw new Error(`Agent not found. Please verify your Agent ID (${elevenLabsAgentId}) exists in your ElevenLabs dashboard.`);
+        throw new Error(`Agent not found. Please verify your Agent ID exists in your ElevenLabs dashboard.`);
       } else if (response.status === 401) {
-        throw new Error('Invalid API key. Please check your ElevenLabs API key in the .env file.');
+        throw new Error('Invalid API key. Please check your ElevenLabs API key.');
       } else {
         const errorText = await response.text();
         throw new Error(`API responded with status: ${response.status}. ${errorText}`);
@@ -414,28 +406,6 @@ const VoiceAssistant = () => {
         </p>
       </div>
 
-      {/* Connection Status Indicator */}
-      {connectionStatus === 'error' && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2 text-red-700">
-              <AlertCircle className="w-5 h-5" />
-              <span className="font-medium">ElevenLabs Configuration Required</span>
-            </div>
-            <div className="text-red-600 text-sm mt-2 space-y-1">
-              <p>To use TARA, you need to configure your ElevenLabs credentials:</p>
-              <ol className="list-decimal list-inside space-y-1 ml-4">
-                <li>Get your API key from <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noopener noreferrer" className="underline">ElevenLabs API Keys</a></li>
-                <li>Create an agent at <a href="https://elevenlabs.io/app/conversational-ai" target="_blank" rel="noopener noreferrer" className="underline">ElevenLabs Conversational AI</a></li>
-                <li>Get a voice ID from <a href="https://elevenlabs.io/app/voice-lab" target="_blank" rel="noopener noreferrer" className="underline">ElevenLabs Voice Lab</a></li>
-                <li>Update your .env file with the actual values</li>
-                <li>Restart your development server</li>
-              </ol>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* TARA Introduction */}
       <Card className="card-modern">
         <CardContent className="p-8 text-center">
@@ -479,7 +449,7 @@ const VoiceAssistant = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               onClick={startCall}
-              disabled={isConnecting || connectionStatus === 'error'}
+              disabled={isConnecting}
               className="btn-goodmind text-lg px-12 py-6 rounded-2xl transform hover:scale-105 transition-all duration-300 shadow-xl"
             >
               {isConnecting ? (
