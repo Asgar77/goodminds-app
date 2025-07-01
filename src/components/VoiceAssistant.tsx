@@ -25,6 +25,8 @@ const VoiceAssistant = () => {
   const [websocket, setWebsocket] = useState<WebSocket | null>(null);
   const [signedUrl, setSignedUrl] = useState<string>('');
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
   const { toast } = useToast();
   const user = auth.currentUser;
 
@@ -45,18 +47,52 @@ const VoiceAssistant = () => {
     }
   }, []);
 
-  // Initialize audio context
+  // Initialize audio context and media recorder
   useEffect(() => {
-    const initAudioContext = async () => {
+    const initAudio = async () => {
       try {
+        // Initialize audio context
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
         setAudioContext(ctx);
+
+        // Get microphone access
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            sampleRate: 16000,
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true
+          } 
+        });
+        
+        // Create media recorder for audio capture
+        const recorder = new MediaRecorder(stream, {
+          mimeType: 'audio/webm;codecs=opus'
+        });
+        
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            setAudioChunks(prev => [...prev, event.data]);
+          }
+        };
+
+        recorder.onstop = () => {
+          // Audio recording stopped
+          setIsListening(false);
+        };
+
+        setMediaRecorder(recorder);
       } catch (error) {
-        console.error('Failed to initialize audio context:', error);
+        console.error('Failed to initialize audio:', error);
+        toast({
+          title: "Microphone Access Required",
+          description: "Please allow microphone access to use voice features with TARA.",
+          variant: "destructive",
+        });
       }
     };
     
-    initAudioContext();
+    initAudio();
     
     return () => {
       if (audioContext) {
@@ -102,8 +138,11 @@ const VoiceAssistant = () => {
       if (websocket) {
         websocket.close();
       }
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
     };
-  }, [websocket]);
+  }, [websocket, mediaRecorder]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -165,6 +204,21 @@ const VoiceAssistant = () => {
     }
   };
 
+  // Convert blob to base64
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data URL prefix to get just the base64 string
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
   // Play audio from base64 data
   const playAudioFromBase64 = async (base64Audio: string) => {
     if (!audioContext) {
@@ -210,6 +264,8 @@ const VoiceAssistant = () => {
       const url = await getSignedUrl();
       setSignedUrl(url);
 
+      console.log('Connecting to WebSocket with signed URL...');
+
       // Create WebSocket connection
       const ws = new WebSocket(url);
       
@@ -221,10 +277,60 @@ const VoiceAssistant = () => {
         setWebsocket(ws);
         setIsConnecting(false);
         
+        // Send session configuration
+        const sessionConfig = {
+          type: 'session.update',
+          session: {
+            modalities: ['text', 'audio'],
+            instructions: 'You are TARA, a compassionate AI mental health companion specifically designed to support students. You understand academic stress, social pressures, exam anxiety, and the unique challenges students face. Provide empathetic, supportive responses while maintaining appropriate boundaries. Always encourage students to seek professional help when needed.',
+            voice: 'alloy',
+            input_audio_format: 'pcm16',
+            output_audio_format: 'pcm16',
+            input_audio_transcription: {
+              model: 'whisper-1'
+            },
+            turn_detection: {
+              type: 'server_vad',
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 200
+            }
+          }
+        };
+
+        ws.send(JSON.stringify(sessionConfig));
+        
         toast({
           title: "Connected to TARA",
           description: "Successfully connected to ElevenLabs Agent. TARA is ready to help!",
         });
+
+        // Send initial greeting
+        setTimeout(() => {
+          const greeting = {
+            type: 'conversation.item.create',
+            item: {
+              type: 'message',
+              role: 'user',
+              content: [
+                {
+                  type: 'input_text',
+                  text: 'Hello TARA, I\'m a student and I\'d like to talk about my mental health and academic stress.'
+                }
+              ]
+            }
+          };
+          ws.send(JSON.stringify(greeting));
+
+          // Trigger response
+          const responseCreate = {
+            type: 'response.create',
+            response: {
+              modalities: ['text', 'audio']
+            }
+          };
+          ws.send(JSON.stringify(responseCreate));
+        }, 1000);
       };
 
       ws.onmessage = (event) => {
@@ -234,6 +340,14 @@ const VoiceAssistant = () => {
           
           // Handle different message types from ElevenLabs
           switch (data.type) {
+            case 'session.created':
+              console.log('Session created:', data.session);
+              break;
+
+            case 'session.updated':
+              console.log('Session updated:', data.session);
+              break;
+
             case 'conversation.item.created':
               if (data.item && data.item.role === 'assistant') {
                 // Handle assistant response
@@ -250,12 +364,23 @@ const VoiceAssistant = () => {
                 }
               }
               break;
+
+            case 'conversation.item.input_audio_transcription.completed':
+              // Handle user speech transcription
+              if (data.transcript) {
+                setConversation(prev => [...prev, {
+                  speaker: 'user',
+                  message: data.transcript,
+                  timestamp: new Date()
+                }]);
+              }
+              break;
               
             case 'response.audio.delta':
               // Handle streaming audio
               if (data.delta) {
                 console.log('Received audio delta');
-                // For now, we'll handle complete audio chunks
+                // For real-time audio, you would accumulate and play these deltas
               }
               break;
 
@@ -266,20 +391,51 @@ const VoiceAssistant = () => {
                 playAudioFromBase64(data.response.audio);
               }
               break;
+
+            case 'response.output_item.added':
+              // Handle response items
+              if (data.item && data.item.type === 'message') {
+                const content = data.item.content;
+                if (content && content.length > 0) {
+                  const textContent = content.find((c: any) => c.type === 'text');
+                  if (textContent && textContent.text) {
+                    setConversation(prev => [...prev, {
+                      speaker: 'tara',
+                      message: textContent.text,
+                      timestamp: new Date()
+                    }]);
+                  }
+                }
+              }
+              break;
+
+            case 'response.audio_transcript.delta':
+              // Handle audio transcript streaming
+              console.log('Audio transcript delta:', data.delta);
+              break;
+
+            case 'response.audio_transcript.done':
+              // Handle complete audio transcript
+              if (data.transcript) {
+                console.log('Complete audio transcript:', data.transcript);
+              }
+              break;
               
             case 'response.done':
               console.log('Response completed');
               setIsSpeaking(false);
               break;
 
-            case 'session.created':
-              console.log('Session created:', data.session);
+            case 'input_audio_buffer.speech_started':
+              console.log('Speech started');
+              setIsListening(true);
               break;
 
-            case 'session.updated':
-              console.log('Session updated:', data.session);
+            case 'input_audio_buffer.speech_stopped':
+              console.log('Speech stopped');
+              setIsListening(false);
               break;
-              
+
             case 'error':
               console.error('WebSocket error:', data);
               toast({
@@ -377,13 +533,6 @@ const VoiceAssistant = () => {
     } catch (error) {
       console.error('Error starting session:', error);
     }
-
-    // Send initial greeting to start the conversation
-    setTimeout(() => {
-      if (websocket && websocket.readyState === WebSocket.OPEN) {
-        sendMessage("Hello TARA, I'm a student and I'd like to talk about my mental health and academic stress.");
-      }
-    }, 1000);
   };
 
   const endCall = async () => {
@@ -391,6 +540,11 @@ const VoiceAssistant = () => {
     setIsSpeaking(false);
     setIsMuted(false);
     setIsListening(false);
+    
+    // Stop media recorder if active
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
     
     // Close WebSocket connection
     if (websocket) {
@@ -422,8 +576,8 @@ const VoiceAssistant = () => {
     }
   };
 
-  // Send message through WebSocket
-  const sendMessage = (message: string) => {
+  // Send text message through WebSocket
+  const sendTextMessage = (message: string) => {
     if (!websocket || websocket.readyState !== WebSocket.OPEN) {
       console.error('WebSocket not connected');
       toast({
@@ -434,15 +588,24 @@ const VoiceAssistant = () => {
       return;
     }
 
-    console.log('Sending message to TARA:', message);
+    console.log('Sending text message to TARA:', message);
 
-    // Send message using the correct ElevenLabs format
-    const messageData = {
-      user_audio: null, // For text input
-      text: message
+    // Create conversation item
+    const conversationItem = {
+      type: 'conversation.item.create',
+      item: {
+        type: 'message',
+        role: 'user',
+        content: [
+          {
+            type: 'input_text',
+            text: message
+          }
+        ]
+      }
     };
 
-    websocket.send(JSON.stringify(messageData));
+    websocket.send(JSON.stringify(conversationItem));
     
     // Add user message to conversation
     setConversation(prev => [...prev, {
@@ -450,72 +613,92 @@ const VoiceAssistant = () => {
       message: message,
       timestamp: new Date()
     }]);
+
+    // Trigger response
+    const responseCreate = {
+      type: 'response.create',
+      response: {
+        modalities: ['text', 'audio']
+      }
+    };
+    websocket.send(JSON.stringify(responseCreate));
   };
 
-  // Enhanced speech recognition
-  const startListening = () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+  // Start voice recording
+  const startVoiceRecording = async () => {
+    if (!mediaRecorder || !websocket || websocket.readyState !== WebSocket.OPEN) {
       toast({
-        title: "Speech Recognition Not Supported",
-        description: "Your browser doesn't support speech recognition. You can still type your messages.",
+        title: "Not Ready",
+        description: "Voice recording is not available. Please ensure microphone access and connection to TARA.",
         variant: "destructive",
       });
       return;
     }
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
+    try {
+      setAudioChunks([]);
       setIsListening(true);
-      console.log('Speech recognition started');
-    };
+      mediaRecorder.start(100); // Collect data every 100ms
 
-    recognition.onresult = async (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      const confidence = event.results[0][0].confidence;
-      
-      console.log('Speech recognition result:', transcript, 'Confidence:', confidence);
-      
-      // Send message through WebSocket
-      sendMessage(transcript);
-    };
+      // Send audio data in real-time
+      mediaRecorder.ondataavailable = async (event) => {
+        if (event.data.size > 0 && websocket.readyState === WebSocket.OPEN) {
+          try {
+            const base64Audio = await blobToBase64(event.data);
+            
+            const audioMessage = {
+              type: 'input_audio_buffer.append',
+              audio: base64Audio
+            };
+            
+            websocket.send(JSON.stringify(audioMessage));
+          } catch (error) {
+            console.error('Error sending audio data:', error);
+          }
+        }
+      };
 
-    recognition.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error);
+      // Auto-stop after 10 seconds
+      setTimeout(() => {
+        if (mediaRecorder.state === 'recording') {
+          stopVoiceRecording();
+        }
+      }, 10000);
+
+    } catch (error) {
+      console.error('Error starting voice recording:', error);
       setIsListening(false);
-      
-      let errorMessage = "Speech recognition failed. Please try again.";
-      switch (event.error) {
-        case 'no-speech':
-          errorMessage = "No speech detected. Please try speaking again.";
-          break;
-        case 'audio-capture':
-          errorMessage = "Microphone access denied. Please check your permissions.";
-          break;
-        case 'not-allowed':
-          errorMessage = "Microphone permission denied. Please allow microphone access.";
-          break;
-      }
-      
       toast({
-        title: "Speech Recognition Error",
-        description: errorMessage,
+        title: "Recording Error",
+        description: "Failed to start voice recording. Please try again.",
         variant: "destructive",
       });
-    };
+    }
+  };
 
-    recognition.onend = () => {
+  // Stop voice recording
+  const stopVoiceRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
       setIsListening(false);
-      console.log('Speech recognition ended');
-    };
 
-    recognition.start();
+      // Commit the audio buffer
+      if (websocket && websocket.readyState === WebSocket.OPEN) {
+        const commitMessage = {
+          type: 'input_audio_buffer.commit'
+        };
+        websocket.send(JSON.stringify(commitMessage));
+
+        // Create response
+        const responseCreate = {
+          type: 'response.create',
+          response: {
+            modalities: ['text', 'audio']
+          }
+        };
+        websocket.send(JSON.stringify(responseCreate));
+      }
+    }
   };
 
   if (isCallActive) {
@@ -525,13 +708,14 @@ const VoiceAssistant = () => {
       isSpeaking={isSpeaking} 
       isListening={isListening}
       onEndCall={endCall}
-      onStartListening={startListening}
+      onStartVoiceRecording={startVoiceRecording}
+      onStopVoiceRecording={stopVoiceRecording}
       conversation={conversation}
       sessionDuration={sessionDuration}
       formatDuration={formatDuration}
       connectionStatus={connectionStatus}
       websocket={websocket}
-      sendMessage={sendMessage}
+      sendTextMessage={sendTextMessage}
     />;
   }
 
@@ -574,7 +758,7 @@ const VoiceAssistant = () => {
                   <h4 className="font-medium text-blue-800 mb-2">Setup Instructions:</h4>
                   <ol className="text-sm text-blue-700 space-y-2 list-decimal list-inside">
                     <li>Go to <a href="https://elevenlabs.io" target="_blank" rel="noopener noreferrer" className="underline">ElevenLabs.io</a> and create an account</li>
-                    <li>Create a new Agent in your ElevenLabs dashboard</li>
+                    <li>Create a new Conversational AI Agent in your ElevenLabs dashboard</li>
                     <li>Copy your API key from the profile settings</li>
                     <li>Copy your Agent ID from the agent settings</li>
                     <li>Add these to your environment variables:
@@ -588,7 +772,7 @@ const VoiceAssistant = () => {
 
                 <div className="flex space-x-3">
                   <Button
-                    onClick={() => window.open('https://elevenlabs.io/app/agents', '_blank')}
+                    onClick={() => window.open('https://elevenlabs.io/app/conversational-ai', '_blank')}
                     variant="outline"
                     size="sm"
                     className="text-amber-600 border-amber-300 hover:bg-amber-50"
@@ -651,8 +835,8 @@ const VoiceAssistant = () => {
             </div>
             <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-4 rounded-2xl">
               <Volume2 className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-              <h3 className="font-semibold text-gray-800 mb-1">Confidential & Safe</h3>
-              <p className="text-sm text-gray-600">Private conversations in a judgment-free space</p>
+              <h3 className="font-semibold text-gray-800 mb-1">Voice & Text</h3>
+              <p className="text-sm text-gray-600">Communicate through voice or text in a safe space</p>
             </div>
           </div>
 
@@ -743,8 +927,8 @@ const VoiceAssistant = () => {
               <p className="text-gray-700 text-sm">TARA understands student life. Feel free to discuss exam anxiety, social pressures, or any academic concerns.</p>
             </div>
             <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-4 rounded-2xl">
-              <h4 className="font-semibold text-gray-800 mb-2">⏰ No Time Pressure</h4>
-              <p className="text-gray-700 text-sm">Take your time. TARA is available 24/7, so you can have sessions whenever you need support.</p>
+              <h4 className="font-semibold text-gray-800 mb-2">🎤 Use Voice or Text</h4>
+              <p className="text-gray-700 text-sm">Communicate however feels most comfortable - speak directly to TARA or type your messages.</p>
             </div>
             <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-4 rounded-2xl">
               <h4 className="font-semibold text-gray-800 mb-2">🤝 Remember: You're Not Alone</h4>
@@ -764,32 +948,34 @@ const CallInterface = ({
   isSpeaking, 
   isListening,
   onEndCall, 
-  onStartListening,
+  onStartVoiceRecording,
+  onStopVoiceRecording,
   conversation,
   sessionDuration,
   formatDuration,
   connectionStatus,
   websocket,
-  sendMessage
+  sendTextMessage
 }: {
   isMuted: boolean;
   setIsMuted: (muted: boolean) => void;
   isSpeaking: boolean;
   isListening: boolean;
   onEndCall: () => void;
-  onStartListening: () => void;
+  onStartVoiceRecording: () => void;
+  onStopVoiceRecording: () => void;
   conversation: any[];
   sessionDuration: number;
   formatDuration: (seconds: number) => string;
   connectionStatus: string;
   websocket: WebSocket | null;
-  sendMessage: (message: string) => void;
+  sendTextMessage: (message: string) => void;
 }) => {
   const [textInput, setTextInput] = useState('');
 
   const handleSendText = () => {
     if (textInput.trim() && websocket) {
-      sendMessage(textInput.trim());
+      sendTextMessage(textInput.trim());
       setTextInput('');
     }
   };
@@ -798,6 +984,14 @@ const CallInterface = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendText();
+    }
+  };
+
+  const handleVoiceToggle = () => {
+    if (isListening) {
+      onStopVoiceRecording();
+    } else {
+      onStartVoiceRecording();
     }
   };
 
@@ -924,10 +1118,10 @@ const CallInterface = ({
             {isMuted ? <MicOff className="w-6 h-6 text-white" /> : <Mic className="w-6 h-6 text-white" />}
           </button>
 
-          {/* Talk Button */}
+          {/* Voice Talk Button */}
           <button
-            onClick={onStartListening}
-            disabled={isSpeaking || isListening}
+            onClick={handleVoiceToggle}
+            disabled={isSpeaking}
             className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 ${
               isListening 
                 ? 'bg-green-500 animate-pulse' 
@@ -948,9 +1142,9 @@ const CallInterface = ({
 
         {/* Instructions */}
         <div className="text-white/60 text-sm space-y-1">
-          <p>Tap the blue button to speak or type your message</p>
+          <p>Hold the blue button to speak or type your message</p>
           <p>TARA will respond through the secure WebSocket connection</p>
-          <p className="text-xs">Powered by ElevenLabs Signed URL Authentication</p>
+          <p className="text-xs">Powered by ElevenLabs Conversational AI</p>
         </div>
       </div>
     </div>
