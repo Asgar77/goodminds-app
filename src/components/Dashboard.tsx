@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Heart, BarChart3, Phone, BookOpen, Settings, User, Menu, X, TrendingUp, Calendar, Award, Sparkles } from 'lucide-react';
+import { Brain, Heart, BarChart3, Phone, BookOpen, Settings, User, Menu, X, TrendingUp, Calendar, Award, Sparkles, CalendarDays } from 'lucide-react';
 import MoodTracker from './MoodTracker';
 import AssessmentModule from './AssessmentModule';
 import VoiceAssistant from './VoiceAssistant';
@@ -95,8 +95,9 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
     { id: 'assessments', name: 'Assessments', icon: Brain, color: 'from-blue-500 to-cyan-500' },
     { id: 'tara', name: 'Call to TARA', icon: Phone, color: 'from-purple-500 to-indigo-500' },
     { id: 'journal', name: 'Journal', icon: BookOpen, color: 'from-orange-500 to-amber-500' },
+    { id: 'appointment', name: 'Book an Appointment', icon: CalendarDays, color: 'from-emerald-500 to-green-500' },
     { id: 'profile', name: 'Profile', icon: User, color: 'from-gray-500 to-slate-500' },
-    { id: 'settings', name: 'Settings', icon: Settings, color: 'from-emerald-500 to-green-500' },
+    { id: 'settings', name: 'Settings', icon: Settings, color: 'from-indigo-500 to-purple-500' },
   ];
 
   const renderActiveModule = () => {
@@ -109,6 +110,8 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         return <VoiceAssistant />;
       case 'journal':
         return <JournalModule />;
+      case 'appointment':
+        return <AppointmentModule />;
       case 'profile':
         return <ProfileModule onLogout={onLogout} />;
       case 'settings':
@@ -129,47 +132,54 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </Button>
 
-      {/* Sidebar */}
+      {/* Enhanced Sidebar with Larger Logos */}
       <div className={`
-        fixed lg:static inset-y-0 left-0 z-40 w-72 glass-modern border-r border-white/20
+        fixed lg:static inset-y-0 left-0 z-40 w-80 glass-modern border-r border-white/20
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 h-full flex flex-col">
-          {/* Logo and Book Appointment Button */}
+          {/* Header with Larger Logos and Book Appointment */}
           <div className="flex items-center justify-between mb-8">
+            {/* GoodMind Logo - Larger */}
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 relative">
+              <div className="w-14 h-14 relative">
                 <img
                   src="/GoodMind_new_logo__25_-removebg-preview.png"
                   alt="GoodMind Logo"
-                  className="w-full h-full object-contain animate-float-gentle"
+                  className="w-full h-full object-contain animate-float-gentle drop-shadow-lg"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                     const fallback = document.createElement('div');
-                    fallback.className = 'w-12 h-12 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center';
-                    fallback.innerHTML = '<span class="text-white text-xl">🧠</span>';
+                    fallback.className = 'w-14 h-14 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg';
+                    fallback.innerHTML = '<span class="text-white text-2xl">🧠</span>';
                     e.currentTarget.parentNode?.appendChild(fallback);
                   }}
                 />
               </div>
               <div>
-                <span className="text-xl font-bold text-gray-800">
+                <span className="text-2xl font-bold text-gray-800">
                   goodmind
                 </span>
-                <span className="text-green-600 font-medium">.app</span>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Your Digital Sanctuary</p>
+                <span className="text-green-600 font-medium text-lg">.app</span>
               </div>
             </div>
             
-            {/* Book Appointment Button in Menu */}
-            <Button
-              onClick={handleBookAppointment}
-              size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded-xl"
-            >
-              Book
-            </Button>
+            {/* Springfield Logo - Larger */}
+            <div className="w-12 h-12 relative">
+              <img
+                src="/images-removebg-preview.png"
+                alt="Springfield Education Logo"
+                className="w-full h-full object-contain drop-shadow-lg"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fallback = document.createElement('div');
+                  fallback.className = 'w-12 h-12 bg-gradient-to-br from-blue-500 to-green-500 rounded-2xl flex items-center justify-center shadow-lg';
+                  fallback.innerHTML = '<span class="text-white text-sm font-bold">SF</span>';
+                  e.currentTarget.parentNode?.appendChild(fallback);
+                }}
+              />
+            </div>
           </div>
 
           {/* User Welcome with First Name */}
@@ -184,7 +194,7 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Welcome, {getFirstName()}
+                  Welcome, {getFirstName()}!
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Wellness Explorer</p>
               </div>
@@ -203,14 +213,18 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
             </div>
           </div>
 
-          {/* Navigation */}
+          {/* Navigation with Book Appointment */}
           <nav className="space-y-2 flex-1">
             {modules.map((module) => (
               <button
                 key={module.id}
                 onClick={() => {
-                  setActiveModule(module.id);
-                  setSidebarOpen(false);
+                  if (module.id === 'appointment') {
+                    handleBookAppointment();
+                  } else {
+                    setActiveModule(module.id);
+                    setSidebarOpen(false);
+                  }
                 }}
                 className={`
                   w-full flex items-center space-x-4 px-4 py-4 rounded-2xl transition-all duration-300 group
@@ -257,10 +271,16 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
   );
 };
 
-// Enhanced Overview Module
+// Enhanced Overview Module with Personalized Welcome
 const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
   const [activityFeed, setActivityFeed] = useState<any[]>([]);
   const user = auth.currentUser;
+
+  // Get user's first name for personalized welcome
+  const getFirstName = () => {
+    const displayName = userData?.displayName || user?.displayName || '';
+    return displayName.split(' ')[0] || 'Student';
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -342,7 +362,7 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
 
   return (
     <div className="space-y-8 animate-slide-up-smooth">
-      {/* Welcome Header */}
+      {/* Personalized Welcome Header */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-teal-400/20 to-blue-400/20 rounded-3xl"></div>
         <div className="relative p-8 glass-modern rounded-3xl border-0">
@@ -350,7 +370,7 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
             <div>
               <h1 className="text-4xl font-bold mb-2">
                 <span className="text-gray-800">
-                  Welcome back{userData?.displayName ? `, ${userData.displayName.split(' ')[0]}` : ''}! 
+                  Welcome back, {getFirstName()}! 
                 </span>
                 <span className="text-3xl ml-2">🌅</span>
               </h1>
@@ -410,6 +430,43 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
               </div>
             ))
           )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// New Appointment Module
+const AppointmentModule = () => {
+  const handleBookAppointment = () => {
+    window.open('https://calendly.com/goodmind/appointment1?month=2025-07', '_blank');
+  };
+
+  return (
+    <div className="space-y-8 animate-slide-up-smooth">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Book an Appointment</h1>
+        <p className="text-gray-600">Schedule a personalized session with our mental health professionals</p>
+      </div>
+      
+      <Card className="card-modern">
+        <CardContent className="p-12 text-center">
+          <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-teal-500 rounded-3xl flex items-center justify-center mx-auto mb-6 animate-float-gentle">
+            <CalendarDays className="w-12 h-12 text-white" />
+          </div>
+          <h3 className="text-2xl font-semibold mb-4 text-gray-800">
+            Professional Mental Health Support
+          </h3>
+          <p className="text-gray-600 mb-8 max-w-md mx-auto">
+            Connect with licensed mental health professionals for personalized support and guidance tailored to your needs.
+          </p>
+          <Button 
+            onClick={handleBookAppointment}
+            className="btn-goodmind text-lg px-12 py-6"
+          >
+            <CalendarDays className="w-6 h-6 mr-3" />
+            Schedule Your Appointment
+          </Button>
         </CardContent>
       </Card>
     </div>
