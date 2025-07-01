@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Phone, PhoneCall, Mic, MicOff, Volume2, VolumeX, MessageCircle, Calendar, ArrowLeft, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
+import { Phone, PhoneCall, Mic, MicOff, Volume2, VolumeX, MessageCircle, Calendar, ArrowLeft, Loader2, AlertCircle, ExternalLink, Settings } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
-// ElevenLabs configuration - using your provided credentials
-const elevenLabsApiKey = "sk_dbac9f0d5fca56d2d8230ff926da6b1e6c7513e8df8026ef";
-const elevenLabsAgentId = "KbLyizMyiFyi3w7hWVCz";
-const elevenLabsVoiceId = "XRlny9TzSxQhHzOusWWe"; // Default voice ID
+// ElevenLabs configuration - these should be set in your environment variables
+const elevenLabsApiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
+const elevenLabsAgentId = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
+const elevenLabsVoiceId = import.meta.env.VITE_ELEVENLABS_VOICE_ID || "XRlny9TzSxQhHzOusWWe";
 
 const VoiceAssistant = () => {
   const [isCallActive, setIsCallActive] = useState(false);
@@ -23,24 +23,25 @@ const VoiceAssistant = () => {
   const [recentSessions, setRecentSessions] = useState<any[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const [errorDetails, setErrorDetails] = useState<string>('');
+  const [showConfigHelp, setShowConfigHelp] = useState(false);
   const { toast } = useToast();
   const user = auth.currentUser;
 
   // Check ElevenLabs configuration on component mount
   useEffect(() => {
+    console.log('Checking ElevenLabs configuration...');
+    console.log('API Key:', elevenLabsApiKey ? `${elevenLabsApiKey.substring(0, 10)}...` : 'Missing');
+    console.log('Agent ID:', elevenLabsAgentId || 'Missing');
+    console.log('Voice ID:', elevenLabsVoiceId || 'Missing');
+
     if (!elevenLabsApiKey || !elevenLabsAgentId) {
-      console.warn('ElevenLabs configuration missing:', {
-        hasApiKey: !!elevenLabsApiKey,
-        hasAgentId: !!elevenLabsAgentId
-      });
+      console.warn('ElevenLabs configuration missing');
       setConnectionStatus('error');
-      setErrorDetails('API credentials are missing from environment variables');
+      setErrorDetails('ElevenLabs API credentials are missing. Please check your environment variables.');
+      setShowConfigHelp(true);
     } else {
-      console.log('ElevenLabs configuration loaded:', {
-        apiKey: elevenLabsApiKey.substring(0, 10) + '...',
-        agentId: elevenLabsAgentId
-      });
       setConnectionStatus('disconnected');
+      setShowConfigHelp(false);
     }
   }, []);
 
@@ -85,26 +86,18 @@ const VoiceAssistant = () => {
     window.open('https://calendly.com/goodmind/appointment1?month=2025-07', '_blank');
   };
 
-  // Enhanced ElevenLabs Agent API integration with better error handling
-  const connectToElevenLabsAgent = async () => {
+  // Test ElevenLabs Agent connection
+  const testAgentConnection = async () => {
     if (!elevenLabsApiKey || !elevenLabsAgentId) {
-      const errorMsg = "ElevenLabs API credentials are missing. Please check your environment configuration.";
-      setErrorDetails(errorMsg);
-      toast({
-        title: "Configuration Error",
-        description: errorMsg,
-        variant: "destructive",
-      });
-      return false;
+      return {
+        success: false,
+        error: 'Missing API credentials'
+      };
     }
 
-    setIsConnecting(true);
-    setConnectionStatus('connecting');
-
     try {
-      console.log('Attempting to connect to ElevenLabs Agent:', elevenLabsAgentId);
+      console.log('Testing connection to ElevenLabs Agent:', elevenLabsAgentId);
       
-      // Test connection to ElevenLabs Agent API
       const response = await fetch(`https://api.elevenlabs.io/v1/agents/${elevenLabsAgentId}`, {
         method: 'GET',
         headers: {
@@ -117,44 +110,72 @@ const VoiceAssistant = () => {
 
       if (response.ok) {
         const agentData = await response.json();
-        console.log('Agent data retrieved successfully:', agentData);
-        setConnectionStatus('connected');
-        setErrorDetails('');
-        toast({
-          title: "Connected to TARA",
-          description: "Successfully connected to ElevenLabs Agent. TARA is ready to help!",
-        });
-        return true;
-      } else if (response.status === 404) {
-        const errorText = await response.text();
-        console.error('Agent not found:', errorText);
-        const errorMsg = `Agent not found. The agent ID "${elevenLabsAgentId}" does not exist in your ElevenLabs account.`;
-        setErrorDetails(errorMsg);
-        throw new Error(errorMsg);
-      } else if (response.status === 401) {
-        const errorMsg = 'Invalid API key. Please check your ElevenLabs API key.';
-        setErrorDetails(errorMsg);
-        throw new Error(errorMsg);
+        console.log('Agent found:', agentData.name || 'Unnamed Agent');
+        return {
+          success: true,
+          agent: agentData
+        };
       } else {
         const errorText = await response.text();
-        console.error('API Error:', response.status, errorText);
-        const errorMsg = `API responded with status: ${response.status}. ${errorText}`;
-        setErrorDetails(errorMsg);
-        throw new Error(errorMsg);
+        console.error('Agent API Error:', response.status, errorText);
+        
+        let errorMessage = '';
+        switch (response.status) {
+          case 404:
+            errorMessage = `Agent not found. The agent ID "${elevenLabsAgentId}" does not exist in your ElevenLabs account.`;
+            break;
+          case 401:
+            errorMessage = 'Invalid API key. Please check your ElevenLabs API key.';
+            break;
+          case 403:
+            errorMessage = 'Access denied. Your API key may not have permission to access this agent.';
+            break;
+          default:
+            errorMessage = `API error: ${response.status} - ${errorText}`;
+        }
+        
+        return {
+          success: false,
+          error: errorMessage
+        };
       }
     } catch (error) {
-      console.error('Failed to connect to ElevenLabs Agent:', error);
+      console.error('Network error testing agent connection:', error);
+      return {
+        success: false,
+        error: 'Network error. Please check your internet connection.'
+      };
+    }
+  };
+
+  // Enhanced ElevenLabs Agent API integration with better error handling
+  const connectToElevenLabsAgent = async () => {
+    setIsConnecting(true);
+    setConnectionStatus('connecting');
+
+    const testResult = await testAgentConnection();
+    
+    if (testResult.success) {
+      setConnectionStatus('connected');
+      setErrorDetails('');
+      setShowConfigHelp(false);
+      toast({
+        title: "Connected to TARA",
+        description: "Successfully connected to ElevenLabs Agent. TARA is ready to help!",
+      });
+      setIsConnecting(false);
+      return true;
+    } else {
       setConnectionStatus('error');
-      const errorMessage = error instanceof Error ? error.message : "Unable to connect to TARA. Please check your ElevenLabs configuration.";
-      setErrorDetails(errorMessage);
+      setErrorDetails(testResult.error || 'Unknown error');
+      setShowConfigHelp(true);
       toast({
         title: "Connection Failed",
-        description: errorMessage,
+        description: testResult.error,
         variant: "destructive",
       });
-      return false;
-    } finally {
       setIsConnecting(false);
+      return false;
     }
   };
 
@@ -436,33 +457,46 @@ const VoiceAssistant = () => {
         </p>
       </div>
 
-      {/* Enhanced Configuration Status with Troubleshooting */}
-      {connectionStatus === 'error' && (
-        <Card className="border-red-200 bg-red-50">
+      {/* Enhanced Configuration Status with Detailed Help */}
+      {showConfigHelp && (
+        <Card className="border-amber-200 bg-amber-50">
           <CardContent className="p-6">
             <div className="flex items-start space-x-3">
-              <AlertCircle className="w-6 h-6 text-red-600 mt-1 flex-shrink-0" />
+              <Settings className="w-6 h-6 text-amber-600 mt-1 flex-shrink-0" />
               <div className="flex-1">
-                <h3 className="font-semibold text-red-800 mb-2">ElevenLabs Agent Configuration Issue</h3>
-                <p className="text-red-700 text-sm mb-3">
-                  {errorDetails || 'Unable to connect to ElevenLabs Agent.'}
+                <h3 className="font-semibold text-amber-800 mb-2">ElevenLabs Configuration Required</h3>
+                <p className="text-amber-700 text-sm mb-4">
+                  To use TARA's voice features, you need to configure ElevenLabs credentials.
                 </p>
                 
-                <div className="bg-red-100 p-4 rounded-lg mb-4">
-                  <h4 className="font-medium text-red-800 mb-2">Current Configuration:</h4>
-                  <div className="text-sm text-red-700 space-y-1">
-                    <p><strong>API Key:</strong> {elevenLabsApiKey ? `${elevenLabsApiKey.substring(0, 10)}...` : 'Missing'}</p>
-                    <p><strong>Agent ID:</strong> {elevenLabsAgentId || 'Missing'}</p>
+                <div className="bg-amber-100 p-4 rounded-lg mb-4">
+                  <h4 className="font-medium text-amber-800 mb-2">Current Status:</h4>
+                  <div className="text-sm text-amber-700 space-y-1">
+                    <p><strong>API Key:</strong> {elevenLabsApiKey ? '✅ Configured' : '❌ Missing'}</p>
+                    <p><strong>Agent ID:</strong> {elevenLabsAgentId ? '✅ Configured' : '❌ Missing'}</p>
+                    <p><strong>Voice ID:</strong> {elevenLabsVoiceId ? '✅ Configured' : '❌ Missing'}</p>
                   </div>
+                  {errorDetails && (
+                    <div className="mt-3 p-3 bg-red-100 border border-red-200 rounded text-red-700 text-sm">
+                      <strong>Error:</strong> {errorDetails}
+                    </div>
+                  )}
                 </div>
 
-                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-4">
-                  <h4 className="font-medium text-yellow-800 mb-2">Troubleshooting Steps:</h4>
-                  <ol className="text-sm text-yellow-700 space-y-1 list-decimal list-inside">
-                    <li>Verify that the agent ID exists in your ElevenLabs dashboard</li>
-                    <li>Check that your API key has the correct permissions</li>
-                    <li>Ensure the agent is published and active</li>
-                    <li>Try creating a new agent if the current one is corrupted</li>
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4">
+                  <h4 className="font-medium text-blue-800 mb-2">Setup Instructions:</h4>
+                  <ol className="text-sm text-blue-700 space-y-2 list-decimal list-inside">
+                    <li>Go to <a href="https://elevenlabs.io" target="_blank" rel="noopener noreferrer" className="underline">ElevenLabs.io</a> and create an account</li>
+                    <li>Create a new Agent in your ElevenLabs dashboard</li>
+                    <li>Copy your API key from the profile settings</li>
+                    <li>Copy your Agent ID from the agent settings</li>
+                    <li>Add these to your environment variables:
+                      <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono">
+                        VITE_ELEVENLABS_API_KEY=your_api_key<br/>
+                        VITE_ELEVENLABS_AGENT_ID=your_agent_id<br/>
+                        VITE_ELEVENLABS_VOICE_ID=your_voice_id
+                      </div>
+                    </li>
                   </ol>
                 </div>
 
@@ -471,7 +505,7 @@ const VoiceAssistant = () => {
                     onClick={() => window.open('https://elevenlabs.io/app/agents', '_blank')}
                     variant="outline"
                     size="sm"
-                    className="text-red-600 border-red-300 hover:bg-red-50"
+                    className="text-amber-600 border-amber-300 hover:bg-amber-50"
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
                     Open ElevenLabs Dashboard
@@ -479,9 +513,10 @@ const VoiceAssistant = () => {
                   <Button
                     onClick={connectToElevenLabsAgent}
                     size="sm"
-                    className="bg-red-600 hover:bg-red-700 text-white"
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                    disabled={!elevenLabsApiKey || !elevenLabsAgentId}
                   >
-                    Retry Connection
+                    Test Connection
                   </Button>
                 </div>
               </div>
@@ -538,7 +573,7 @@ const VoiceAssistant = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               onClick={startCall}
-              disabled={isConnecting || connectionStatus === 'error'}
+              disabled={isConnecting || (connectionStatus === 'error' && (!elevenLabsApiKey || !elevenLabsAgentId))}
               className="btn-goodmind text-lg px-12 py-6 rounded-2xl transform hover:scale-105 transition-all duration-300 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isConnecting ? (
@@ -546,9 +581,9 @@ const VoiceAssistant = () => {
                   <Loader2 className="w-6 h-6 mr-3 animate-spin" />
                   Connecting to TARA...
                 </>
-              ) : connectionStatus === 'error' ? (
+              ) : connectionStatus === 'error' && (!elevenLabsApiKey || !elevenLabsAgentId) ? (
                 <>
-                  <AlertCircle className="w-6 h-6 mr-3" />
+                  <Settings className="w-6 h-6 mr-3" />
                   Configuration Required
                 </>
               ) : (
