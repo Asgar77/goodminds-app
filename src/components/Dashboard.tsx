@@ -132,44 +132,48 @@ const Dashboard = ({ onLogout }: DashboardProps) => {
         {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </Button>
 
-      {/* Enhanced Sidebar with Much Larger Logos */}
+      {/* Enhanced Sidebar with Smaller, Organized Logos */}
       <div className={`
         fixed lg:static inset-y-0 left-0 z-40 w-80 glass-modern border-r border-white/20
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 h-full flex flex-col">
-          {/* Header with Much Larger Logos */}
+          {/* Header with Smaller, More Organized Logos */}
           <div className="flex items-center justify-between mb-8">
-            {/* GoodMind Logo - Much Larger */}
+            {/* GoodMind Logo - Smaller and More Organized */}
             <div className="flex items-center space-x-3">
-              <div className="w-20 h-20 relative">
+              <div className="w-12 h-12 relative">
                 <img
                   src="/GoodMind_new_logo__25_-removebg-preview.png"
                   alt="GoodMind Logo"
-                  className="w-full h-full object-contain animate-float-gentle drop-shadow-2xl filter brightness-110 contrast-125"
+                  className="w-full h-full object-contain animate-float-gentle drop-shadow-lg filter brightness-110 contrast-125"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                     const fallback = document.createElement('div');
-                    fallback.className = 'w-20 h-20 bg-gradient-to-br from-green-500 to-teal-500 rounded-3xl flex items-center justify-center shadow-2xl';
-                    fallback.innerHTML = '<span class="text-white text-3xl">🧠</span>';
+                    fallback.className = 'w-12 h-12 bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl flex items-center justify-center shadow-lg';
+                    fallback.innerHTML = '<span class="text-white text-xl">🧠</span>';
                     e.currentTarget.parentNode?.appendChild(fallback);
                   }}
                 />
               </div>
+              <div>
+                <span className="text-lg font-bold text-gray-800">GoodMind</span>
+                <p className="text-xs text-gray-500">Digital Sanctuary</p>
+              </div>
             </div>
             
-            {/* Springfield Logo - Much Larger */}
-            <div className="w-18 h-18 relative">
+            {/* Springfield Logo - Smaller and More Organized */}
+            <div className="w-10 h-10 relative">
               <img
                 src="/images-removebg-preview.png"
                 alt="Springfield Education Logo"
-                className="w-full h-full object-contain drop-shadow-2xl filter brightness-110 contrast-125"
+                className="w-full h-full object-contain drop-shadow-md filter brightness-110 contrast-125"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   const fallback = document.createElement('div');
-                  fallback.className = 'w-18 h-18 bg-gradient-to-br from-blue-500 to-green-500 rounded-3xl flex items-center justify-center shadow-2xl';
-                  fallback.innerHTML = '<span class="text-white text-lg font-bold">SF</span>';
+                  fallback.className = 'w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded-xl flex items-center justify-center shadow-md';
+                  fallback.innerHTML = '<span class="text-white text-xs font-bold">SF</span>';
                   e.currentTarget.parentNode?.appendChild(fallback);
                 }}
               />
@@ -356,19 +360,19 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
 
   return (
     <div className="space-y-8 animate-slide-up-smooth">
-      {/* Personalized Welcome Header */}
+      {/* Personalized Welcome Header with Enhanced Animations */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-teal-400/20 to-blue-400/20 rounded-3xl"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-teal-400/20 to-blue-400/20 rounded-3xl animate-gradient"></div>
         <div className="relative p-8 glass-modern rounded-3xl border-0">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold mb-2">
+              <h1 className="text-4xl font-bold mb-2 animate-fade-in-smooth">
                 <span className="text-gray-800">
                   Welcome back, {getFirstName()}! 
                 </span>
-                <span className="text-3xl ml-2">🌅</span>
+                <span className="text-3xl ml-2 animate-float-gentle">🌅</span>
               </h1>
-              <p className="text-gray-600 dark:text-gray-300 text-lg">Ready to continue your wellness journey today?</p>
+              <p className="text-gray-600 dark:text-gray-300 text-lg animate-fade-in-smooth" style={{ animationDelay: '0.2s' }}>Ready to continue your wellness journey today?</p>
             </div>
             <div className="hidden md:block">
               <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-teal-400 rounded-full flex items-center justify-center animate-pulse-soft">
@@ -379,10 +383,10 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Enhanced Stats Grid with Staggered Animations */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => (
-          <Card key={index} className="card-modern hover:shadow-xl transition-all duration-300 group">
+          <Card key={index} className="card-modern hover:shadow-xl transition-all duration-300 group animate-scale-in-smooth" style={{ animationDelay: `${index * 0.1}s` }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
@@ -397,23 +401,23 @@ const OverviewModule = ({ stats, userData }: { stats: any, userData: any }) => {
         ))}
       </div>
 
-      {/* Recent Activity */}
-      <Card className="card-modern">
+      {/* Enhanced Recent Activity */}
+      <Card className="card-modern animate-fade-in-smooth" style={{ animationDelay: '0.5s' }}>
         <CardHeader>
           <CardTitle className="text-xl text-gray-800 dark:text-white flex items-center">
-            <Sparkles className="w-6 h-6 mr-2 text-green-500" />
+            <Sparkles className="w-6 h-6 mr-2 text-green-500 animate-pulse" />
             Recent Activity
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {activityFeed.length === 0 ? (
             <div className="text-center py-8">
-              <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-4 animate-float-gentle" />
               <p className="text-gray-500 dark:text-gray-400">Start your wellness journey to see activity here!</p>
             </div>
           ) : (
             activityFeed.map((activity, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 bg-white/50 dark:bg-gray-800/50 rounded-2xl hover:bg-white/70 dark:hover:bg-gray-800/70 transition-colors">
+              <div key={idx} className="flex items-center justify-between p-4 bg-white/50 dark:bg-gray-800/50 rounded-2xl hover:bg-white/70 dark:hover:bg-gray-800/70 transition-colors animate-slide-up-smooth" style={{ animationDelay: `${0.6 + idx * 0.1}s` }}>
                 <span className="text-gray-700 dark:text-gray-300">
                   {activity.type === 'mood' && <>{activity.emoji} Logged mood: <b>{activity.label}</b></>}
                   {activity.type === 'assessment' && <>📝 Completed assessment: <b>{activity.label}</b></>}
