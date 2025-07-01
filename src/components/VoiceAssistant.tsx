@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 // ElevenLabs configuration - using your provided credentials
 const elevenLabsApiKey = "sk_dbac9f0d5fca56d2d8230ff926da6b1e6c7513e8df8026ef";
 const elevenLabsAgentId = "agent_01jz0yb4veemarp3sbqx2hgxy4";
-const elevenLabsVoiceId = "21m00Tcm4TlvDq8ikWAM"; // Default voice ID
+const elevenLabsVoiceId = "XRlny9TzSxQhHzOusWWe"; // Default voice ID
 
 const VoiceAssistant = () => {
   const [isCallActive, setIsCallActive] = useState(false);
