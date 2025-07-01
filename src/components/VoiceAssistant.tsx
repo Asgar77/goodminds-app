@@ -8,6 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 
 const elevenLabsApiKey = import.meta.env.VITE_ELEVENLABS_API_KEY;
 const elevenLabsVoiceId = import.meta.env.VITE_ELEVENLABS_VOICE_ID;
+const elevenLabsAgentApiKey = import.meta.env.VITE_ELEVENLABS_AGENT_API_KEY;
+const elevenLabsAgentId = import.meta.env.VITE_ELEVENLABS_AGENT_ID;
 
 const VoiceAssistant = () => {
   const [isCallActive, setIsCallActive] = useState(false);
@@ -174,6 +176,34 @@ const VoiceAssistant = () => {
     }
   };
 
+  const getAgentResponse = async (userMessage: string) => {
+    if (!elevenLabsAgentApiKey || !elevenLabsAgentId) {
+      console.warn('ElevenLabs Agent API not configured');
+      return { text: "I'm sorry, I can't respond right now." };
+    }
+    try {
+      const response = await fetch(`https://api.elevenlabs.io/v1/agents/${elevenLabsAgentId}/chat`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': elevenLabsAgentApiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: userMessage,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      } else {
+        throw new Error('Failed to get agent response');
+      }
+    } catch (error) {
+      console.error('Error with agent API:', error);
+      return { text: "I'm sorry, I can't respond right now." };
+    }
+  };
+
   const startListening = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       toast({
@@ -195,7 +225,7 @@ const VoiceAssistant = () => {
       setIsListening(true);
     };
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = async (event: any) => {
       const transcript = event.results[0][0].transcript;
       setTranscript(transcript);
       setConversation(prev => [...prev, { 
@@ -203,23 +233,14 @@ const VoiceAssistant = () => {
         message: transcript, 
         timestamp: new Date() 
       }]);
-      
-      // Simulate Tara's response
-      setTimeout(() => {
-        const responses = [
-          "I understand how you're feeling. That sounds really challenging. Can you tell me more about what's been on your mind?",
-          "Thank you for sharing that with me. It takes courage to open up. How long have you been experiencing these feelings?",
-          "I hear you, and your feelings are completely valid. What do you think might help you feel better right now?",
-          "That's a lot to process. You're doing great by talking about it. What support systems do you have in place?",
-        ];
-        const response = responses[Math.floor(Math.random() * responses.length)];
-        setConversation(prev => [...prev, { 
-          speaker: 'tara', 
-          message: response, 
-          timestamp: new Date() 
-        }]);
-        speakText(response);
-      }, 1500);
+      // Call ElevenLabs Agent API for dynamic response
+      const agentResponse = await getAgentResponse(transcript);
+      setConversation(prev => [...prev, { 
+        speaker: 'tara', 
+        message: agentResponse.text, 
+        timestamp: new Date() 
+      }]);
+      speakText(agentResponse.text);
     };
 
     recognition.onerror = (event: any) => {
