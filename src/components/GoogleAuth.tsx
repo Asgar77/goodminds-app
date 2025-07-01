@@ -137,9 +137,6 @@ const GoogleAuth: React.FC<GoogleAuthProps> = ({ onAuthSuccess, onAuthError }) =
     );
   }
 
-  // Listen to Firestore user data
-  const { userData, loading: userDataLoading } = useUserData(user?.uid);
-
   if (user) {
     return (
       <Card className="glass border-0 max-w-md mx-auto">
